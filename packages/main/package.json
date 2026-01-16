@@ -1,0 +1,45 @@
+{
+  "name": "main",
+  "version": "0.0.0",
+  "description": "Basic starter package for a monorepo",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "tsdown",
+    "types:check": "tsc -p tsconfig.lib.json"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/excilone/monorepo.git"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "keywords": [],
+  "author": "Excilone contributors",
+  "devDependencies": {
+    "publint": "^0.3.16",
+    "tsconfig": "workspace:*",
+    "tsdown": "0.20.0-beta.1",
+    "vitest": "*"
+  }
+}

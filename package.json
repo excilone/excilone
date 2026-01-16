@@ -1,0 +1,28 @@
+{
+  "name": "monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "types:check": "turbo types:check",
+    "lint": "biome check --write .",
+    "test": "vitest",
+    "release": "turbo build && changeset publish"
+  },
+  "packageManager": "pnpm@10.28.0",
+  "devDependencies": {
+    "@biomejs/biome": "2.3.11",
+    "@changesets/cli": "^2.29.8",
+    "commitizen": "^4.3.1",
+    "cz-conventional-changelog": "^3.3.0",
+    "turbo": "^2.7.4",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.17"
+  },
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
+  }
+}

@@ -30,7 +30,7 @@ importers:
         specifier: ^4.0.17
         version: 4.0.17(@types/node@25.0.7)(jiti@2.6.1)
 
-  packages/main:
+  packages/core:
     devDependencies:
       publint:
         specifier: ^0.3.16

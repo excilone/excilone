@@ -5,7 +5,7 @@ export default mergeConfig(
   baseConfig,
   defineConfig({
     test: {
-      name: 'main',
+      name: 'core',
     },
   })
 )

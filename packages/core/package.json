@@ -1,8 +1,9 @@
 {
-  "name": "main",
+  "name": "@excilone/core",
   "version": "0.0.0",
-  "description": "Basic starter package for a monorepo",
+  "description": "Simple, lightweight and versatile dependency injector.",
   "type": "module",
+  "license": "Apache-2.0",
   "private": true,
   "scripts": {
     "build": "tsdown",
@@ -28,14 +29,14 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/excilone/monorepo.git"
+    "url": "git+https://github.com/excilone/excilone.git"
   },
   "publishConfig": {
     "access": "public",
     "provenance": true
   },
   "keywords": [],
-  "author": "Excilone contributors",
+  "author": "Cristobal Rodriguez <cristobal.rod0907@gmail.com>",
   "devDependencies": {
     "publint": "^0.3.16",
     "tsconfig": "workspace:*",

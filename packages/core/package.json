@@ -35,7 +35,16 @@
     "access": "public",
     "provenance": true
   },
-  "keywords": [],
+  "keywords": [
+    "dependency",
+    "injector",
+    "di",
+    "ioc",
+    "typescript",
+    "javascript",
+    "framework",
+    "library"
+  ],
   "author": "Cristobal Rodriguez <cristobal.rod0907@gmail.com>",
   "devDependencies": {
     "publint": "^0.3.16",

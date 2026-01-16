@@ -4,7 +4,6 @@
   "description": "Simple, lightweight and versatile dependency injector.",
   "type": "module",
   "license": "Apache-2.0",
-  "private": true,
   "scripts": {
     "build": "tsdown",
     "types:check": "tsc -p tsconfig.lib.json"

@@ -8,7 +8,8 @@
     "types:check": "turbo types:check",
     "lint": "biome check --write .",
     "test": "vitest",
-    "release": "turbo build && changeset publish"
+    "release": "turbo build && changeset publish",
+    "prepare": "husky"
   },
   "packageManager": "pnpm@10.28.0",
   "devDependencies": {
@@ -16,6 +17,7 @@
     "@changesets/cli": "^2.29.8",
     "commitizen": "^4.3.1",
     "cz-conventional-changelog": "^3.3.0",
+    "husky": "^9.1.7",
     "turbo": "^2.7.4",
     "typescript": "^5.9.3",
     "vitest": "^4.0.17"

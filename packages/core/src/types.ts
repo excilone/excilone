@@ -1,4 +1,4 @@
-import type { __identity } from './constants.js'
+import type { __bind, __identity } from './constants.js'
 
 export interface Unit<
   T = unknown,
@@ -10,10 +10,29 @@ export interface Unit<
   as<NewName extends string>(name: NewName): Unit<T, NewName, D>
 }
 
+export interface Token<T, N extends string> extends BindingUnit<T, N, false> {
+  (data: T): Binding<T, N>
+  as<NewName extends string>(name: NewName): Token<T, NewName>
+}
+
+export interface Binding<T, N extends string> extends BindingUnit<T, N, true> {
+  as<NewName extends string>(name: NewName): Binding<T, NewName>
+}
+
 export interface UnitPayload<T, N extends string, D extends readonly Unit[]> {
   readonly name: N
   readonly using: D
   readonly factory: (deps: MapUnits<D>) => T | Promise<T>
+}
+
+export interface TokenDeclaration<T> {
+  // biome-ignore lint/style/useShorthandFunctionType: this interface will be updated
+  <N extends string>(name: N): Token<T, N>
+}
+
+export interface BindingUnit<T, N extends string, B extends boolean>
+  extends Unit<T, N, []> {
+  readonly [__bind]: B
 }
 
 export type MapUnits<D extends readonly Unit[]> = {

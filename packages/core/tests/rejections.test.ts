@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { CycleError, DuplicateDependencyError, ExecutionError } from '../src/errors.js'
 import { createUnit, resolveUnit } from '../src/index.js'
 
 describe('Error handling', () => {
@@ -17,7 +18,7 @@ describe('Error handling', () => {
       factory: (deps) => deps.failing + 1,
     })
 
-    await expect(resolveUnit(DependentUnit)).rejects.toThrow('Factory error')
+    await expect(resolveUnit(DependentUnit)).rejects.toThrow(ExecutionError)
   })
 
   it('should detect duplicate dependency names and throw an error', async () => {
@@ -39,9 +40,7 @@ describe('Error handling', () => {
       factory: (deps) => deps.sharedDep + 5,
     })
 
-    await expect(resolveUnit(MainUnit)).rejects.toThrow(
-      /^Duplicate dependency name detected: sharedDep in unit: main .*/g
-    )
+    await expect(resolveUnit(MainUnit)).rejects.toThrow(DuplicateDependencyError)
   })
 })
 
@@ -62,7 +61,7 @@ describe('Circular dependencies', () => {
     // Introducing circular dependency
     UnitA.using.push(UnitB as never)
 
-    await expect(resolveUnit(UnitA)).rejects.toThrow(/^Circular dependency detected.*/g)
+    await expect(resolveUnit(UnitA)).rejects.toThrow(CycleError)
   })
 
   it('should detect indirect circular dependencies and throw an error', async () => {
@@ -87,7 +86,7 @@ describe('Circular dependencies', () => {
     // Introducing indirect circular dependency
     UnitX.using.push(UnitZ as never)
 
-    await expect(resolveUnit(UnitX)).rejects.toThrow(/^Circular dependency detected.*/g)
+    await expect(resolveUnit(UnitX)).rejects.toThrow(CycleError)
   })
 
   it('should handle self-referencing units and throw an error', async () => {
@@ -100,8 +99,6 @@ describe('Circular dependencies', () => {
     // Introducing self-reference
     SelfRefUnit.using.push(SelfRefUnit as never)
 
-    await expect(resolveUnit(SelfRefUnit)).rejects.toThrow(
-      /^Circular dependency detected.*/g
-    )
+    await expect(resolveUnit(SelfRefUnit)).rejects.toThrow(CycleError)
   })
 })

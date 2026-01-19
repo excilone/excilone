@@ -25,7 +25,8 @@ interface ResolveScope<U> extends CacheEntry<U> {
 export async function resolveWithScope<U>(
   unit: BaseUnit<U, string, readonly BaseUnit[], boolean>,
   global: Map<symbol, U>,
-  scope: ReadonlyMap<symbol, CacheEntry<U>>,
+  scope: Map<symbol, CacheEntry<U>>,
+  tokenGraph: Map<symbol, Set<symbol>>,
   resolving: Set<symbol>
 ): Promise<ResolveScope<U>> {
   if (resolving.has(unit[__identity]))
@@ -37,6 +38,10 @@ export async function resolveWithScope<U>(
 
   if (unit[__bind]) {
     const value = await unit.factory({})
+
+    if (!tokenGraph.has(unit[__identity])) tokenGraph.set(unit[__identity], new Set())
+
+    for (const id of tokenGraph.get(unit[__identity]) ?? []) scope.delete(id)
 
     return {
       value,
@@ -69,7 +74,19 @@ export async function resolveWithScope<U>(
   for (const dep of unit.using as readonly Unit<U>[]) {
     if (dep.name in depValues) throw new DuplicateDependencyError(unit.name, dep.name)
     try {
-      const resolvedDep = await resolveWithScope(dep, global, depsScope, resolving)
+      const resolvedDep = await resolveWithScope(
+        dep,
+        global,
+        depsScope,
+        tokenGraph,
+        resolving
+      )
+
+      if (tokenGraph.has(dep[__identity]))
+        tokenGraph.set(
+          dep[__identity],
+          new Set([...(tokenGraph.get(dep[__identity]) ?? []), unit[__identity]])
+        )
 
       depsScope = new Map([...depsScope.entries(), ...resolvedDep.scope.entries()])
       depValues[dep.name] = resolvedDep.value
@@ -99,6 +116,6 @@ export async function resolve<U>(
   const global = new Map<symbol, U>()
   const resolving = new Set<symbol>()
 
-  const result = await resolveWithScope(unit, global, new Map(), resolving)
+  const result = await resolveWithScope(unit, global, new Map(), new Map(), resolving)
   return result.value
 }

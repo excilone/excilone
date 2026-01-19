@@ -1,9 +1,9 @@
 import { resolve } from './resolver.js'
 import { createTokenInternal } from './token.js'
-import type { TokenDeclaration, Unit, UnitPayload } from './types.js'
+import type { BaseUnit, TokenDeclaration, Unit, UnitPayload } from './types.js'
 import { createUnitInternal } from './unit.js'
 
-export function createUnit<T, const N extends string, D extends readonly Unit[]>(
+export function createUnit<T, const N extends string, D extends readonly BaseUnit[]>(
   payload: UnitPayload<T, N, D>
 ): Unit<T, N, D> {
   return createUnitInternal(Symbol(payload.name), payload)

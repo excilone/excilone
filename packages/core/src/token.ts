@@ -27,17 +27,25 @@ export function createTokenInternal<T, const N extends string>(
 ): Token<T, N> {
   const providerFn = (data: T): Binding<T, N> => createBindingInternal(id, name, data)
 
+  // TODO: use Proxy to make name read-only in a better way
+  Object.defineProperty(providerFn, 'name', {
+    value: name,
+    configurable: true,
+  })
+
+  const { name: _, ...rest } = createUnitInternal<T, N, []>(id, {
+    name,
+    using: [],
+    factory: () => {
+      throw new MissingBindingError(name)
+    },
+  })
+
   return Object.assign(providerFn, {
-    ...createUnitInternal<T, N, []>(id, {
-      name,
-      using: [],
-      factory: () => {
-        throw new MissingBindingError(name)
-      },
-    }),
+    ...rest,
     [__bind]: false as const,
     as<NewName extends string>(newName: NewName): Token<T, NewName> {
       return createTokenInternal(id, newName)
     },
-  })
+  }) as Token<T, N>
 }

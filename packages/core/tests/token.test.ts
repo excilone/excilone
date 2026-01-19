@@ -46,4 +46,32 @@ describe('Token and Binding creation', () => {
       childPersonAge: 12,
     })
   })
+
+  it('should use the nearest nested binding', async () => {
+    const createToken = declareToken<string>()
+
+    const ColorToken = createToken('color')
+
+    const ForegroundUnit = createUnit({
+      name: 'fg',
+      using: [ColorToken],
+      factory: (deps) => `Foreground color is: ${deps.color}`,
+    })
+
+    const OuterUnit = createUnit({
+      name: 'outer',
+      using: [ColorToken('blue'), ForegroundUnit],
+      factory: (deps) => `Outer unit says: ${deps.fg}`,
+    })
+
+    const MainUnit = createUnit({
+      name: 'main',
+      using: [ColorToken('red'), ForegroundUnit, OuterUnit],
+      factory: (deps) => `Main unit says: ${deps.fg}. ${deps.outer}.`,
+    })
+
+    await expect(resolveUnit(MainUnit)).resolves.toBe(
+      'Main unit says: Foreground color is: red. Outer unit says: Foreground color is: blue.',
+    )
+  })
 })

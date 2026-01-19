@@ -71,7 +71,7 @@ describe('Token and Binding creation', () => {
     })
 
     await expect(resolveUnit(MainUnit)).resolves.toBe(
-      'Main unit says: Foreground color is: red. Outer unit says: Foreground color is: blue.',
+      'Main unit says: Foreground color is: red. Outer unit says: Foreground color is: blue.'
     )
   })
 })

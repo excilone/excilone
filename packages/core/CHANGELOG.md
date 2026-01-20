@@ -1,5 +1,12 @@
 # @excilone/core
 
+## 0.2.0
+
+### Minor Changes
+
+- c6ef9af: Add `ExciloneError` for error handling
+- 54b822c: Add Tokens and Bindings to provide imperative data to Units
+
 ## 0.1.0
 
 ### Minor Changes

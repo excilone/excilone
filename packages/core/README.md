@@ -21,7 +21,29 @@ const GreetingUnit = createUnit({
   factory: (deps) => `Hello, ${deps.user}!`
 })
 
-console.log(await resolveUnit(GreetingUnit))
+console.log(await resolveUnit(GreetingUnit)) // Hello, John Doe!
+```
+
+Using **Tokens**:
+
+```ts
+import { createUnit, declareToken, resolveUnit } from '@excilone/core'
+
+const UserToken = declareToken<string>()('user')
+
+const GreetingUnit = createUnit({
+  name: 'greeting',
+  using: [UserToken], // Requesting to bind `UserToken` in a upper `Unit`
+  factory: (deps) => `Hello, ${deps.user}!`
+})
+
+const LogUnit = createUnit({
+  name: 'log',
+  using: [UserToken('John Doe'), GreetingUnit],
+  factory: (deps) => console.log(deps.greeting)
+})
+
+await resolveUnit(LogUnit) // Hello, John Doe!
 ```
 
 ## License

@@ -20,6 +20,13 @@ export class DuplicateDependencyError extends ExciloneError {
   }
 }
 
+export class MissingBindingError extends ExciloneError {
+  constructor(tokenName: string) {
+    super(`No binding found for token "${tokenName}"`)
+    this.name = 'MissingBindingError'
+  }
+}
+
 export class ExecutionError extends ExciloneError {
   constructor(unitName: string, originalError: unknown) {
     super(

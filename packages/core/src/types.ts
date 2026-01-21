@@ -27,13 +27,14 @@ export interface BaseUnit<
 > extends UnitPayload<T, N, D> {
   readonly [__identity]: symbol
   readonly [__bind]: B
+  readonly using: D
   // all units can be renamed
   as<NewName extends string>(name: NewName): BaseUnit<T, NewName, D, B>
 }
 
 export interface UnitPayload<T, N extends string, D extends readonly BaseUnit[]> {
   readonly name: N
-  readonly using: D
+  readonly using?: D
   readonly factory: (deps: MapUnits<D>) => T | Promise<T>
 }
 

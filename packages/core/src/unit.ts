@@ -8,6 +8,7 @@ export function createUnitInternal<
 >(id: symbol, payload: UnitPayload<T, N, D>): Unit<T, N, D> {
   return {
     ...payload,
+    using: payload.using ?? ([] as unknown as D),
     [__identity]: id,
     [__bind]: false,
     as(name) {

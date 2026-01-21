@@ -11,7 +11,6 @@ describe('Error handling', () => {
   it('should propagate errors from factory functions', async () => {
     const FailingUnit = createUnit({
       name: 'failing',
-      using: [],
       factory: () => {
         throw new Error('Factory error')
       },
@@ -29,13 +28,11 @@ describe('Error handling', () => {
   it('should detect duplicate dependency names and throw an error', async () => {
     const Unit1 = createUnit({
       name: 'sharedDep',
-      using: [],
       factory: () => 10,
     })
 
     const Unit2 = createUnit({
       name: 'sharedDep',
-      using: [],
       factory: () => 20,
     })
 
@@ -53,7 +50,6 @@ describe('Circular dependencies', () => {
   it('should detect circular dependencies and throw an error', async () => {
     const UnitA = createUnit({
       name: 'unitA',
-      using: [],
       factory: () => 52,
     })
 
@@ -72,7 +68,6 @@ describe('Circular dependencies', () => {
   it('should detect indirect circular dependencies and throw an error', async () => {
     const UnitX = createUnit({
       name: 'unitX',
-      using: [],
       factory: () => 'X',
     })
 
@@ -97,7 +92,6 @@ describe('Circular dependencies', () => {
   it('should handle self-referencing units and throw an error', async () => {
     const SelfRefUnit = createUnit({
       name: 'selfRef',
-      using: [],
       factory: () => 'Self',
     })
 

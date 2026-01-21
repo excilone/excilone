@@ -5,7 +5,6 @@ describe('Basic units', () => {
   it('should resolve single unit', async () => {
     const GreetingUnit = createUnit({
       name: 'greeting',
-      using: [],
       factory: () => 'World',
     })
 
@@ -15,7 +14,6 @@ describe('Basic units', () => {
   it('should resolve unit with dependency', async () => {
     const NameUnit = createUnit({
       name: 'name',
-      using: [],
       factory: () => 'Alice',
     })
 
@@ -31,13 +29,11 @@ describe('Basic units', () => {
   it('should resolve nested dependencies', async () => {
     const FirstNameUnit = createUnit({
       name: 'firstName',
-      using: [],
       factory: () => 'John',
     })
 
     const LastNameUnit = createUnit({
       name: 'lastName',
-      using: [],
       factory: () => 'Doe',
     })
 
@@ -61,7 +57,6 @@ describe('Basic units', () => {
 
     const CounterUnit = createUnit({
       name: 'counter',
-      using: [],
       factory: () => {
         callCount++
         return 42
@@ -95,7 +90,6 @@ describe('Unit naming', () => {
   it('should allow renaming units using as()', async () => {
     const OriginalUnit = createUnit({
       name: 'original',
-      using: [],
       factory: () => 100,
     })
 
@@ -115,7 +109,6 @@ describe('Asynchronous factories', () => {
   it('should handle asynchronous factory functions', async () => {
     const AsyncUnit = createUnit({
       name: 'asyncValue',
-      using: [],
       factory: () => {
         return new Promise<number>((resolve) => {
           setTimeout(() => resolve(7), 50)

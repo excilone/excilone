@@ -1,6 +1,6 @@
 {
   "name": "@excilone/core",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Simple, lightweight and versatile dependency injector.",
   "type": "module",
   "license": "Apache-2.0",

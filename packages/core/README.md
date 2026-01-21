@@ -11,7 +11,6 @@ import { createUnit, resolveUnit } from '@excilone/core'
 
 const UserUnit = createUnit({
   name: 'user',
-  using: [],
   factory: () => 'John Doe'
 })
 

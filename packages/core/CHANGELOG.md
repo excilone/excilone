@@ -1,5 +1,11 @@
 # @excilone/core
 
+## 0.3.0
+
+### Minor Changes
+
+- 0ae31ab: Make `using` optional in units
+
 ## 0.2.0
 
 ### Minor Changes

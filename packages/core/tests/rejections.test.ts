@@ -5,100 +5,100 @@ import {
   ExecutionError,
   MissingBindingError,
 } from '../src/errors.js'
-import { createUnit, declareToken, resolveUnit } from '../src/index.js'
+import { createTask, declareToken, resolveUnit } from '../src/index.js'
 
 describe('Error handling', () => {
   it('should propagate errors from factory functions', async () => {
-    const FailingUnit = createUnit({
+    const FailingTask = createTask({
       name: 'failing',
       factory: () => {
         throw new Error('Factory error')
       },
     })
 
-    const DependentUnit = createUnit({
+    const DependentTask = createTask({
       name: 'dependent',
-      using: [FailingUnit],
+      using: [FailingTask],
       factory: (deps) => deps.failing + 1,
     })
 
-    await expect(resolveUnit(DependentUnit)).rejects.toThrow(ExecutionError)
+    await expect(resolveUnit(DependentTask)).rejects.toThrow(ExecutionError)
   })
 
   it('should detect duplicate dependency names and throw an error', async () => {
-    const Unit1 = createUnit({
+    const Task1 = createTask({
       name: 'sharedDep',
       factory: () => 10,
     })
 
-    const Unit2 = createUnit({
+    const Task2 = createTask({
       name: 'sharedDep',
       factory: () => 20,
     })
 
-    const MainUnit = createUnit({
+    const MainTask = createTask({
       name: 'main',
-      using: [Unit1, Unit2],
+      using: [Task1, Task2],
       factory: (deps) => deps.sharedDep + 5,
     })
 
-    await expect(resolveUnit(MainUnit)).rejects.toThrow(DuplicateDependencyError)
+    await expect(resolveUnit(MainTask)).rejects.toThrow(DuplicateDependencyError)
   })
 })
 
 describe('Circular dependencies', () => {
   it('should detect circular dependencies and throw an error', async () => {
-    const UnitA = createUnit({
-      name: 'unitA',
+    const TaskA = createTask({
+      name: 'taskA',
       factory: () => 52,
     })
 
-    const UnitB = createUnit({
-      name: 'unitB',
-      using: [UnitA],
-      factory: (deps) => deps.unitA + 1,
+    const TaskB = createTask({
+      name: 'taskB',
+      using: [TaskA],
+      factory: (deps) => deps.taskA + 1,
     })
 
     // Introducing circular dependency
-    UnitA.using.push(UnitB as never)
+    TaskA.using.push(TaskB as never)
 
-    await expect(resolveUnit(UnitA)).rejects.toThrow(CycleError)
+    await expect(resolveUnit(TaskA)).rejects.toThrow(CycleError)
   })
 
   it('should detect indirect circular dependencies and throw an error', async () => {
-    const UnitX = createUnit({
-      name: 'unitX',
+    const TaskX = createTask({
+      name: 'taskX',
       factory: () => 'X',
     })
 
-    const UnitY = createUnit({
-      name: 'unitY',
-      using: [UnitX],
-      factory: (deps) => `${deps.unitX}Y`,
+    const TaskY = createTask({
+      name: 'taskY',
+      using: [TaskX],
+      factory: (deps) => `${deps.taskX}Y`,
     })
 
-    const UnitZ = createUnit({
-      name: 'unitZ',
-      using: [UnitY],
-      factory: (deps) => `${deps.unitY}Z`,
+    const TaskZ = createTask({
+      name: 'taskZ',
+      using: [TaskY],
+      factory: (deps) => `${deps.taskY}Z`,
     })
 
     // Introducing indirect circular dependency
-    UnitX.using.push(UnitZ as never)
+    TaskX.using.push(TaskZ as never)
 
-    await expect(resolveUnit(UnitX)).rejects.toThrow(CycleError)
+    await expect(resolveUnit(TaskX)).rejects.toThrow(CycleError)
   })
 
-  it('should handle self-referencing units and throw an error', async () => {
-    const SelfRefUnit = createUnit({
+  it('should handle self-referencing tasks and throw an error', async () => {
+    const SelfRefTask = createTask({
       name: 'selfRef',
       factory: () => 'Self',
     })
 
     // Introducing self-reference
-    SelfRefUnit.using.push(SelfRefUnit as never)
+    SelfRefTask.using.push(SelfRefTask as never)
 
-    await expect(resolveUnit(SelfRefUnit)).rejects.toThrow(CycleError)
+    await expect(resolveUnit(SelfRefTask)).rejects.toThrow(CycleError)
   })
 })
 
@@ -108,13 +108,13 @@ describe('Token binding errors', () => {
 
     const Token = createToken('requiredToken')
 
-    const MainUnit = createUnit({
-      name: 'mainUnit',
+    const MainTask = createTask({
+      name: 'main',
       using: [Token],
       factory: (deps) => deps.requiredToken * 2,
     })
 
-    await expect(resolveUnit(MainUnit)).rejects.toThrow(MissingBindingError)
+    await expect(resolveUnit(MainTask)).rejects.toThrow(MissingBindingError)
   })
 
   it('should throw an error when a token is bound dynamically but required statically', async () => {
@@ -122,19 +122,19 @@ describe('Token binding errors', () => {
 
     const DynamicToken = createToken('dynamicToken')
 
-    const DynamicBindingUnit = createUnit({
-      name: 'dynamicBindingUnit',
+    const DynamicBindingTask = createTask({
+      name: 'dynamicBindingTask',
       using: [DynamicToken('dynamicValue')],
       factory: (deps) => deps.dynamicToken,
     })
 
-    const MainUnit = createUnit({
-      name: 'mainUnit',
-      using: [DynamicBindingUnit, DynamicToken],
+    const MainTask = createTask({
+      name: 'mainTask',
+      using: [DynamicBindingTask, DynamicToken],
       factory: (deps) => deps.dynamicToken.toUpperCase(),
     })
 
-    await expect(resolveUnit(MainUnit)).rejects.toThrow(MissingBindingError)
+    await expect(resolveUnit(MainTask)).rejects.toThrow(MissingBindingError)
   })
 
   it('should throw an error when a binding is not in the correct scope', async () => {
@@ -142,18 +142,18 @@ describe('Token binding errors', () => {
 
     const FlagToken = createToken('flagToken')
 
-    const DependentUnit = createUnit({
-      name: 'dependentUnit',
+    const DependentTask = createTask({
+      name: 'dependentTask',
       using: [FlagToken],
       factory: (deps) => (deps.flagToken ? 'ON' : 'OFF'),
     })
 
-    const MainUnit = createUnit({
-      name: 'mainUnit',
-      using: [DependentUnit, FlagToken(true)],
-      factory: (deps) => deps.dependentUnit,
+    const MainTask = createTask({
+      name: 'mainTask',
+      using: [DependentTask, FlagToken(true)],
+      factory: (deps) => deps.dependentTask,
     })
 
-    await expect(resolveUnit(MainUnit)).rejects.toThrow(MissingBindingError)
+    await expect(resolveUnit(MainTask)).rejects.toThrow(MissingBindingError)
   })
 })

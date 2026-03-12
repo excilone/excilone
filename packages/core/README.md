@@ -4,45 +4,45 @@ Simple and extensible <b>Dependency Injection</b> library.
 
 ## Usage
 
-Creating a simple **Unit** with dependencies:
+Creating a simple **Task** with dependencies:
 
 ```js
-import { createUnit, resolveUnit } from '@excilone/core'
+import { createTask, resolveUnit } from '@excilone/core'
 
-const UserUnit = createUnit({
+const UserTask = createTask({
   name: 'user',
   factory: () => 'John Doe'
 })
 
-const GreetingUnit = createUnit({
+const GreetingTask = createTask({
   name: 'greeting',
-  using: [UserUnit],
+  using: [UserTask],
   factory: (deps) => `Hello, ${deps.user}!`
 })
 
-console.log(await resolveUnit(GreetingUnit)) // Hello, John Doe!
+console.log(await resolveUnit(GreetingTask)) // Hello, John Doe!
 ```
 
 Using **Tokens**:
 
 ```ts
-import { createUnit, declareToken, resolveUnit } from '@excilone/core'
+import { createTask, declareToken, resolveUnit } from '@excilone/core'
 
 const UserToken = declareToken<string>()('user')
 
-const GreetingUnit = createUnit({
+const GreetingTask = createTask({
   name: 'greeting',
   using: [UserToken], // Requesting to bind `UserToken` in a upper `Unit`
   factory: (deps) => `Hello, ${deps.user}!`
 })
 
-const LogUnit = createUnit({
+const LogTask = createTask({
   name: 'log',
-  using: [UserToken('John Doe'), GreetingUnit],
+  using: [UserToken('John Doe'), GreetingTask],
   factory: (deps) => console.log(deps.greeting)
 })
 
-await resolveUnit(LogUnit) // Hello, John Doe!
+await resolveUnit(LogTask) // Hello, John Doe!
 ```
 
 ## License

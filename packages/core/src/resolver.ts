@@ -1,11 +1,11 @@
-import { __bind, __identity } from './constants.js'
 import {
   CycleError,
   DuplicateDependencyError,
   ExciloneError,
   ExecutionError,
 } from './errors.js'
-import type { BaseUnit, Unit } from './types.js'
+import { __bind, __identity } from './internal/constants.js'
+import type { Task, Unit } from './types.js'
 
 interface ResolveScope<U> {
   value: U
@@ -13,14 +13,14 @@ interface ResolveScope<U> {
 }
 
 export async function resolve<U>(
-  unit: BaseUnit<U, string, readonly BaseUnit[], boolean>
+  unit: Unit<U, string, readonly Unit[], boolean>
 ): Promise<U> {
   const cache = new Map<symbol, U>()
   const bindingGraph = new Map<symbol, Set<symbol>>()
   const resolving = new Set<symbol>()
 
   async function resolveWithScope(
-    unit: BaseUnit<U, string, readonly BaseUnit[], boolean>,
+    unit: Unit<U, string, readonly Unit[], boolean>,
     currentBindings: Map<symbol, U>,
     currentDynamic: Map<symbol, U>
   ): Promise<ResolveScope<U>> {
@@ -39,7 +39,7 @@ export async function resolve<U>(
     const definedBindings = new Set<symbol>()
     let isDynamic = false
 
-    for (const dep of unit.using as readonly Unit<U>[]) {
+    for (const dep of unit.using as readonly Task<U>[]) {
       if (dep.name in depValues) throw new DuplicateDependencyError(unit.name, dep.name)
 
       if (dep[__bind]) {

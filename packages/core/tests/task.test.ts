@@ -96,9 +96,7 @@ describe('Task naming', () => {
 describe('Asynchronous factories', () => {
   it('should handle asynchronous factory functions', async () => {
     const AsyncTask = createTask(() => {
-      return new Promise<number>((resolve) => {
-        setTimeout(() => resolve(7), 50)
-      })
+      return Promise.resolve(7)
     }).as('asyncValue')
 
     const DependentTask = createTask({

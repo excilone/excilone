@@ -1,39 +1,32 @@
 import { describe, expect, it } from 'vitest'
-import { createUnit, declareToken, resolveUnit } from '../src/index.js'
+import { createTask, createToken, resolveUnit } from '../src/index.js'
 
 describe('Token and Binding creation', () => {
   it('should create a token and binding correctly', async () => {
-    const createToken = declareToken<string>()
+    const NameToken = createToken<string>().as('name')
 
-    const NameToken = createToken('name')
-
-    const GreetingUnit = createUnit({
-      name: 'greeting',
-      using: [NameToken('World')],
+    const GreetingTask = createTask({
+      using: [NameToken.bind('World')],
       factory: (deps) => `Hello, ${deps.name}`,
     })
 
-    await expect(resolveUnit(GreetingUnit)).resolves.toBe('Hello, World')
+    await expect(resolveUnit(GreetingTask)).resolves.toBe('Hello, World')
   })
 
   it('should use the nearest binding', async () => {
-    const createToken = declareToken<number>()
+    const AgeToken = createToken<number>().as('age')
 
-    const AgeToken = createToken('age')
-
-    const PersonUnit = createUnit({
-      name: 'person',
+    const PersonTask = createTask({
       using: [AgeToken],
       factory: (deps) => ({ age: deps.age }),
     })
 
-    const MainUnit = createUnit({
-      name: 'main',
+    const MainTask = createTask({
       using: [
-        AgeToken(30),
-        PersonUnit,
-        AgeToken(12).as('childAge'),
-        PersonUnit.as('childPerson'),
+        AgeToken.bind(30),
+        PersonTask.as('person'),
+        AgeToken.bind(12).as('childAge'),
+        PersonTask.as('childPerson'),
       ],
       factory: (deps) => ({
         personAge: deps.person.age,
@@ -41,87 +34,73 @@ describe('Token and Binding creation', () => {
       }),
     })
 
-    await expect(resolveUnit(MainUnit)).resolves.toEqual({
+    await expect(resolveUnit(MainTask)).resolves.toEqual({
       personAge: 30,
       childPersonAge: 12,
     })
   })
 
   it('should use the nearest nested binding', async () => {
-    const createToken = declareToken<string>()
+    const ColorToken = createToken<string>().as('color')
 
-    const ColorToken = createToken('color')
-
-    const ForegroundUnit = createUnit({
-      name: 'fg',
+    const ForegroundTask = createTask({
       using: [ColorToken],
       factory: (deps) => `Foreground color is: ${deps.color}`,
+    }).as('fg')
+
+    const OuterTask = createTask({
+      using: [ColorToken.bind('blue'), ForegroundTask],
+      factory: (deps) => `Outer task says: ${deps.fg}`,
+    }).as('outer')
+
+    const MainTask = createTask({
+      using: [ColorToken.bind('red'), ForegroundTask, OuterTask],
+      factory: (deps) => `Main task says: ${deps.fg}. ${deps.outer}.`,
     })
 
-    const OuterUnit = createUnit({
-      name: 'outer',
-      using: [ColorToken('blue'), ForegroundUnit],
-      factory: (deps) => `Outer unit says: ${deps.fg}`,
-    })
-
-    const MainUnit = createUnit({
-      name: 'main',
-      using: [ColorToken('red'), ForegroundUnit, OuterUnit],
-      factory: (deps) => `Main unit says: ${deps.fg}. ${deps.outer}.`,
-    })
-
-    await expect(resolveUnit(MainUnit)).resolves.toBe(
-      'Main unit says: Foreground color is: red. Outer unit says: Foreground color is: blue.'
+    await expect(resolveUnit(MainTask)).resolves.toBe(
+      'Main task says: Foreground color is: red. Outer task says: Foreground color is: blue.'
     )
   })
 
   it('should not override bindings in sibling units', async () => {
-    const createToken = declareToken<boolean>()
+    const FlagToken = createToken<boolean>().as('flag')
 
-    const FlagToken = createToken('flag')
-
-    const UnitA = createUnit({
-      name: 'unitA',
-      using: [FlagToken(true)],
+    const TaskA = createTask({
+      using: [FlagToken.bind(true)],
       factory: (deps) => `Flag is ${deps.flag}`,
-    })
+    }).as('taskA')
 
-    const UnitB = createUnit({
-      name: 'unitB',
-      using: [FlagToken(false)],
+    const TaskB = createTask({
+      using: [FlagToken.bind(false)],
       factory: (deps) => `Flag is ${deps.flag}`,
+    }).as('taskB')
+
+    const MainTask = createTask({
+      using: [TaskA, TaskB],
+      factory: (deps) => `${deps.taskA}; ${deps.taskB}`,
     })
 
-    const MainUnit = createUnit({
-      name: 'main',
-      using: [UnitA, UnitB],
-      factory: (deps) => `${deps.unitA}; ${deps.unitB}`,
-    })
-
-    await expect(resolveUnit(MainUnit)).resolves.toBe('Flag is true; Flag is false')
+    await expect(resolveUnit(MainTask)).resolves.toBe('Flag is true; Flag is false')
   })
 
   it('should not override units when declaring new bindings', async () => {
-    const createToken = declareToken<number>()
+    const SizeToken = createToken<number>().as('size')
 
-    const SizeToken = createToken('size')
-
-    const SizeUnit = createUnit({
-      name: 'sizeUnit',
+    const SizeTask = createTask({
       using: [SizeToken],
       factory: (deps) => deps.size + 10,
-    })
+    }).as('sizeTask')
 
-    const MainUnit = createUnit({
-      name: 'main',
-      using: [SizeToken(5), SizeUnit, SizeToken(20).as('sizeToken')],
+    const MainTask = createTask({
+      using: [SizeToken.bind(5), SizeTask, SizeToken.bind(20).as('sizeToken')],
       factory: (deps) => ({
-        sizeUnitValue: deps.sizeUnit,
+        sizeUnitValue: deps.sizeTask,
         sizeTokenValue: deps.sizeToken,
       }),
     })
 
-    await expect(resolveUnit(MainUnit)).resolves.toEqual({
+    await expect(resolveUnit(MainTask)).resolves.toEqual({
       sizeUnitValue: 15,
       sizeTokenValue: 20,
     })
@@ -130,70 +109,59 @@ describe('Token and Binding creation', () => {
   it('should execute factory functions only once per binding', async () => {
     let callCount = 0
 
-    const createToken = declareToken<number>()
+    const NumberToken = createToken<number>().as('number')
 
-    const NumberToken = createToken('number')
-
-    const NumberUnit = createUnit({
-      name: 'numberUnit',
+    const NumberTask = createTask({
       using: [NumberToken],
       factory: (deps) => {
         callCount++
         return deps.number * 2
       },
+    }).as('numberTask')
+
+    const InnerTask = createTask({
+      using: [NumberToken.bind(7), NumberTask],
+      factory: (deps) => deps.numberTask + 1,
+    }).as('inner')
+
+    const AnotherInnerTask = createTask({
+      using: [NumberTask],
+      factory: (deps) => deps.numberTask + 5,
+    }).as('anotherInner')
+
+    const MainTask = createTask({
+      using: [NumberToken.bind(5), InnerTask, AnotherInnerTask, NumberTask],
+      factory: (deps) => deps.inner + deps.anotherInner + deps.numberTask,
     })
 
-    const InnerUnit = createUnit({
-      name: 'inner',
-      using: [NumberToken(7), NumberUnit],
-      factory: (deps) => deps.numberUnit + 1,
-    })
-
-    const AnotherInnerUnit = createUnit({
-      name: 'anotherInner',
-      using: [NumberUnit],
-      factory: (deps) => deps.numberUnit + 5,
-    })
-
-    const MainUnit = createUnit({
-      name: 'main',
-      using: [NumberToken(5), InnerUnit, AnotherInnerUnit, NumberUnit],
-      factory: (deps) => deps.inner + deps.anotherInner + deps.numberUnit,
-    })
-
-    await expect(resolveUnit(MainUnit)).resolves.toBe(
+    await expect(resolveUnit(MainTask)).resolves.toBe(
       [7 * 2 + 1, 5 * 2 + 5, 5 * 2].reduce((a, b) => a + b, 0)
     )
     expect(callCount).toBe(2)
   })
 
-  it('should allow reusing tokens in different units', async () => {
-    const createToken = declareToken<number>()
+  it('should allow reusing tokens in different task', async () => {
+    const ValueToken = createToken<number>().as('value')
 
-    const ValueToken = createToken('value')
-
-    const UnitA = createUnit({
-      name: 'unitA',
-      using: [ValueToken(10)],
+    const TaskA = createTask({
+      using: [ValueToken.bind(10)],
       factory: (deps) => deps.value * 2,
-    })
+    }).as('taskA')
 
-    const UnitB = createUnit({
-      name: 'unitB',
-      using: [ValueToken(20)],
+    const TaskB = createTask({
+      using: [ValueToken.bind(20)],
       factory: (deps) => deps.value + 5,
-    })
+    }).as('taskB')
 
-    const MainUnit = createUnit({
-      name: 'main',
-      using: [UnitA, UnitB],
+    const MainTask = createTask({
+      using: [TaskA, TaskB],
       factory: (deps) => ({
-        resultA: deps.unitA,
-        resultB: deps.unitB,
+        resultA: deps.taskA,
+        resultB: deps.taskB,
       }),
     })
 
-    await expect(resolveUnit(MainUnit)).resolves.toEqual({
+    await expect(resolveUnit(MainTask)).resolves.toEqual({
       resultA: 20,
       resultB: 25,
     })

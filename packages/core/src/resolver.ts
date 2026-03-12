@@ -1,11 +1,11 @@
-import { __bind, __identity } from './constants.js'
 import {
   CycleError,
   DuplicateDependencyError,
   ExciloneError,
   ExecutionError,
 } from './errors.js'
-import type { BaseUnit, Unit } from './types.js'
+import { __meta, type UnitKey } from './internal/meta.js'
+import type { Unit } from './types.js'
 
 interface ResolveScope<U> {
   value: U
@@ -13,74 +13,87 @@ interface ResolveScope<U> {
 }
 
 export async function resolve<U>(
-  unit: BaseUnit<U, string, readonly BaseUnit[], boolean>
+  unit: Unit<U, UnitKey | null, readonly Unit[]>
 ): Promise<U> {
   const cache = new Map<symbol, U>()
   const bindingGraph = new Map<symbol, Set<symbol>>()
   const resolving = new Set<symbol>()
 
   async function resolveWithScope(
-    unit: BaseUnit<U, string, readonly BaseUnit[], boolean>,
+    unit: Unit<U, UnitKey | null, readonly Unit[]>,
     currentBindings: Map<symbol, U>,
     currentDynamic: Map<symbol, U>
   ): Promise<ResolveScope<U>> {
-    if (resolving.has(unit[__identity]))
+    if (resolving.has(unit[__meta].identity))
       throw new CycleError(
-        Array.from(resolving)
-          .map((id) => id.toString())
-          .concat([unit[__identity].toString()])
+        Array.from([...resolving.values(), unit[__meta].identity]).map((id) =>
+          id.toString()
+        )
       )
 
-    resolving.add(unit[__identity])
+    resolving.add(unit[__meta].identity)
 
-    const depValues: Record<string, U> = {}
+    const depValues: Record<UnitKey, U> = {}
     const scopeBindings = new Map(currentBindings)
     const scopeDynamic = new Map(currentDynamic)
     const definedBindings = new Set<symbol>()
     let isDynamic = false
 
-    for (const dep of unit.using as readonly Unit<U>[]) {
-      if (dep.name in depValues) throw new DuplicateDependencyError(unit.name, dep.name)
+    for (const dep of unit.using as readonly Unit<U, UnitKey | null>[]) {
+      if (dep[__meta].key !== null && dep[__meta].key in depValues)
+        throw new DuplicateDependencyError(
+          unit[__meta].identity.toString(),
+          dep[__meta].key.toString()
+        )
 
-      if (dep[__bind]) {
+      if (dep[__meta].type === 'binding') {
         const value = await dep.factory({})
 
         isDynamic = true
         bindingGraph.set(
-          dep[__identity],
-          new Set([...(bindingGraph.get(dep[__identity]) ?? []), unit[__identity]])
+          dep[__meta].identity,
+          new Set([
+            ...(bindingGraph.get(dep[__meta].identity) ?? []),
+            unit[__meta].identity,
+          ])
         )
-        for (const boundUnitId of bindingGraph.get(dep[__identity]) ?? [])
+        for (const boundUnitId of bindingGraph.get(dep[__meta].identity) ?? [])
           scopeDynamic.delete(boundUnitId)
 
-        definedBindings.add(dep[__identity])
-        scopeBindings.set(dep[__identity], value)
-        depValues[dep.name] = value
-      } else if (scopeBindings.has(dep[__identity])) {
+        definedBindings.add(dep[__meta].identity)
+        scopeBindings.set(dep[__meta].identity, value)
+        if (dep[__meta].key !== null) depValues[dep[__meta].key] = value
+      } else if (scopeBindings.has(dep[__meta].identity)) {
         isDynamic = true
         bindingGraph.set(
-          dep[__identity],
-          new Set([...(bindingGraph.get(dep[__identity]) ?? []), unit[__identity]])
+          dep[__meta].identity,
+          new Set([
+            ...(bindingGraph.get(dep[__meta].identity) ?? []),
+            unit[__meta].identity,
+          ])
         )
-        depValues[dep.name] = scopeBindings.get(dep[__identity]) as U
-      } else if (scopeDynamic.has(dep[__identity])) {
+        if (dep[__meta].key !== null)
+          depValues[dep[__meta].key] = scopeBindings.get(dep[__meta].identity) as U
+      } else if (scopeDynamic.has(dep[__meta].identity)) {
         isDynamic = true
-        depValues[dep.name] = scopeDynamic.get(dep[__identity]) as U
-      } else if (cache.has(dep[__identity])) {
-        depValues[dep.name] = cache.get(dep[__identity]) as U
+        if (dep[__meta].key !== null)
+          depValues[dep[__meta].key] = scopeDynamic.get(dep[__meta].identity) as U
+      } else if (cache.has(dep[__meta].identity)) {
+        if (dep[__meta].key !== null)
+          depValues[dep[__meta].key] = cache.get(dep[__meta].identity) as U
       } else {
         try {
           const value = await resolveWithScope(dep, scopeBindings, scopeDynamic)
 
-          depValues[dep.name] = value.value
+          if (dep[__meta].key !== null) depValues[dep[__meta].key] = value.value
 
           if (value.isDynamic) {
             isDynamic = true
-            scopeDynamic.set(dep[__identity], value.value)
+            scopeDynamic.set(dep[__meta].identity, value.value)
           }
         } catch (error) {
           if (error instanceof ExciloneError) throw error
-          throw new ExecutionError(unit.name, error)
+          throw new ExecutionError(unit[__meta].identity.toString(), error)
         }
       }
     }
@@ -94,11 +107,11 @@ export async function resolve<U>(
       if (!blacklist.has(id)) currentDynamic.set(id, value)
     }
 
-    resolving.delete(unit[__identity])
+    resolving.delete(unit[__meta].identity)
 
     const value = await unit.factory(depValues)
 
-    if (!isDynamic) cache.set(unit[__identity], value)
+    if (!isDynamic) cache.set(unit[__meta].identity, value)
 
     return { isDynamic, value }
   }

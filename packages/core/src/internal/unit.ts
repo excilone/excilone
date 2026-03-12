@@ -1,0 +1,21 @@
+import type { CoreUnit, Unit } from '../types.js'
+import { __meta, type UnitKey, type UnitType } from './meta.js'
+
+export function createUnit<T, K extends UnitKey | null, D extends readonly Unit[]>(
+  id: symbol,
+  key: K,
+  type: UnitType,
+  payload: CoreUnit<T, D>
+): Unit<T, K, D> {
+  return {
+    ...payload,
+    [__meta]: {
+      identity: id,
+      type,
+      key,
+    },
+    as(newKey) {
+      return createUnit(id, newKey, type, payload)
+    },
+  }
+}

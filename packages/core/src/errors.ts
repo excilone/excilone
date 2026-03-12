@@ -14,23 +14,23 @@ export class CycleError extends ExciloneError {
 }
 
 export class DuplicateDependencyError extends ExciloneError {
-  constructor(unitName: string, dependencyName: string) {
-    super(`Duplicate dependency name "${dependencyName}" detected in unit "${unitName}"`)
+  constructor(unitKey: string, dependencyKey: string) {
+    super(`Duplicate dependency name "${dependencyKey}" detected in unit "${unitKey}"`)
     this.name = 'DuplicateDependencyError'
   }
 }
 
 export class MissingBindingError extends ExciloneError {
-  constructor(tokenName: string) {
-    super(`No binding found for token "${tokenName}"`)
+  constructor(tokenKey: string) {
+    super(`No binding found for token "${tokenKey}"`)
     this.name = 'MissingBindingError'
   }
 }
 
 export class ExecutionError extends ExciloneError {
-  constructor(unitName: string, originalError: unknown) {
+  constructor(unitKey: string, originalError: unknown) {
     super(
-      `Error executing unit "${unitName}": ${originalError instanceof Error ? originalError.message : String(originalError)}`
+      `Error executing unit "${unitKey}": ${originalError instanceof Error ? originalError.message : String(originalError)}`
     )
     this.name = 'ExecutionError'
     this.cause = originalError

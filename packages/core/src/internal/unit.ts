@@ -1,23 +1,22 @@
-import type { Task, Unit, UnitPayload } from '../types.js'
-import { __meta, type UnitType } from './meta.js'
+import type { Unit, UnitPayload } from '../types.js'
+import { __meta, type UnitKey, type UnitType } from './meta.js'
 
-export function createUnit<T, const N extends string, D extends readonly Unit[]>(
+export function createUnit<T, K extends UnitKey | null, D extends readonly Unit[]>(
   id: symbol,
+  key: K,
   type: UnitType,
-  payload: UnitPayload<T, N, D>
-): Task<T, N, D> {
+  payload: UnitPayload<T, D>
+): Unit<T, K, D> {
   return {
     ...payload,
     using: payload.using ?? ([] as unknown as D),
     [__meta]: {
       identity: id,
       type,
+      key,
     },
-    as(name) {
-      return createUnit(id, type, {
-        ...payload,
-        name,
-      })
+    as(newKey) {
+      return createUnit(id, newKey, type, payload)
     },
   }
 }

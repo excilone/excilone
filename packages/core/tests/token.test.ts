@@ -1,15 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { createTask, declareToken, resolveUnit } from '../src/index.js'
+import { createTask, createToken, resolveUnit } from '../src/index.js'
 
 describe('Token and Binding creation', () => {
   it('should create a token and binding correctly', async () => {
-    const createToken = declareToken<string>()
-
-    const NameToken = createToken('name')
+    const NameToken = createToken<string>().as('name')
 
     const GreetingTask = createTask({
-      name: 'greeting',
-      using: [NameToken('World')],
+      using: [NameToken.bind('World')],
       factory: (deps) => `Hello, ${deps.name}`,
     })
 
@@ -17,22 +14,18 @@ describe('Token and Binding creation', () => {
   })
 
   it('should use the nearest binding', async () => {
-    const createToken = declareToken<number>()
-
-    const AgeToken = createToken('age')
+    const AgeToken = createToken<number>().as('age')
 
     const PersonTask = createTask({
-      name: 'person',
       using: [AgeToken],
       factory: (deps) => ({ age: deps.age }),
     })
 
     const MainTask = createTask({
-      name: 'main',
       using: [
-        AgeToken(30),
-        PersonTask,
-        AgeToken(12).as('childAge'),
+        AgeToken.bind(30),
+        PersonTask.as('person'),
+        AgeToken.bind(12).as('childAge'),
         PersonTask.as('childPerson'),
       ],
       factory: (deps) => ({
@@ -48,25 +41,20 @@ describe('Token and Binding creation', () => {
   })
 
   it('should use the nearest nested binding', async () => {
-    const createToken = declareToken<string>()
-
-    const ColorToken = createToken('color')
+    const ColorToken = createToken<string>().as('color')
 
     const ForegroundTask = createTask({
-      name: 'fg',
       using: [ColorToken],
       factory: (deps) => `Foreground color is: ${deps.color}`,
-    })
+    }).as('fg')
 
     const OuterTask = createTask({
-      name: 'outer',
-      using: [ColorToken('blue'), ForegroundTask],
+      using: [ColorToken.bind('blue'), ForegroundTask],
       factory: (deps) => `Outer task says: ${deps.fg}`,
-    })
+    }).as('outer')
 
     const MainTask = createTask({
-      name: 'main',
-      using: [ColorToken('red'), ForegroundTask, OuterTask],
+      using: [ColorToken.bind('red'), ForegroundTask, OuterTask],
       factory: (deps) => `Main task says: ${deps.fg}. ${deps.outer}.`,
     })
 
@@ -76,24 +64,19 @@ describe('Token and Binding creation', () => {
   })
 
   it('should not override bindings in sibling units', async () => {
-    const createToken = declareToken<boolean>()
-
-    const FlagToken = createToken('flag')
+    const FlagToken = createToken<boolean>().as('flag')
 
     const TaskA = createTask({
-      name: 'taskA',
-      using: [FlagToken(true)],
+      using: [FlagToken.bind(true)],
       factory: (deps) => `Flag is ${deps.flag}`,
-    })
+    }).as('taskA')
 
     const TaskB = createTask({
-      name: 'taskB',
-      using: [FlagToken(false)],
+      using: [FlagToken.bind(false)],
       factory: (deps) => `Flag is ${deps.flag}`,
-    })
+    }).as('taskB')
 
     const MainTask = createTask({
-      name: 'main',
       using: [TaskA, TaskB],
       factory: (deps) => `${deps.taskA}; ${deps.taskB}`,
     })
@@ -102,19 +85,15 @@ describe('Token and Binding creation', () => {
   })
 
   it('should not override units when declaring new bindings', async () => {
-    const createToken = declareToken<number>()
-
-    const SizeToken = createToken('size')
+    const SizeToken = createToken<number>().as('size')
 
     const SizeTask = createTask({
-      name: 'sizeTask',
       using: [SizeToken],
       factory: (deps) => deps.size + 10,
-    })
+    }).as('sizeTask')
 
     const MainTask = createTask({
-      name: 'main',
-      using: [SizeToken(5), SizeTask, SizeToken(20).as('sizeToken')],
+      using: [SizeToken.bind(5), SizeTask, SizeToken.bind(20).as('sizeToken')],
       factory: (deps) => ({
         sizeUnitValue: deps.sizeTask,
         sizeTokenValue: deps.sizeToken,
@@ -130,34 +109,28 @@ describe('Token and Binding creation', () => {
   it('should execute factory functions only once per binding', async () => {
     let callCount = 0
 
-    const createToken = declareToken<number>()
-
-    const NumberToken = createToken('number')
+    const NumberToken = createToken<number>().as('number')
 
     const NumberTask = createTask({
-      name: 'numberTask',
       using: [NumberToken],
       factory: (deps) => {
         callCount++
         return deps.number * 2
       },
-    })
+    }).as('numberTask')
 
     const InnerTask = createTask({
-      name: 'inner',
-      using: [NumberToken(7), NumberTask],
+      using: [NumberToken.bind(7), NumberTask],
       factory: (deps) => deps.numberTask + 1,
-    })
+    }).as('inner')
 
     const AnotherInnerTask = createTask({
-      name: 'anotherInner',
       using: [NumberTask],
       factory: (deps) => deps.numberTask + 5,
-    })
+    }).as('anotherInner')
 
     const MainTask = createTask({
-      name: 'main',
-      using: [NumberToken(5), InnerTask, AnotherInnerTask, NumberTask],
+      using: [NumberToken.bind(5), InnerTask, AnotherInnerTask, NumberTask],
       factory: (deps) => deps.inner + deps.anotherInner + deps.numberTask,
     })
 
@@ -168,24 +141,19 @@ describe('Token and Binding creation', () => {
   })
 
   it('should allow reusing tokens in different task', async () => {
-    const createToken = declareToken<number>()
-
-    const ValueToken = createToken('value')
+    const ValueToken = createToken<number>().as('value')
 
     const TaskA = createTask({
-      name: 'taskA',
-      using: [ValueToken(10)],
+      using: [ValueToken.bind(10)],
       factory: (deps) => deps.value * 2,
-    })
+    }).as('taskA')
 
     const TaskB = createTask({
-      name: 'taskB',
-      using: [ValueToken(20)],
+      using: [ValueToken.bind(20)],
       factory: (deps) => deps.value + 5,
-    })
+    }).as('taskB')
 
     const MainTask = createTask({
-      name: 'main',
       using: [TaskA, TaskB],
       factory: (deps) => ({
         resultA: deps.taskA,

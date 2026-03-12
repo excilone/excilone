@@ -4,7 +4,6 @@ import { createTask, resolveUnit } from '../src/index.js'
 describe('Basic tasks', () => {
   it('should resolve single task', async () => {
     const GreetingTask = createTask({
-      name: 'greeting',
       factory: () => 'World',
     })
 
@@ -13,12 +12,10 @@ describe('Basic tasks', () => {
 
   it('should resolve task with dependency', async () => {
     const NameTask = createTask({
-      name: 'name',
       factory: () => 'Alice',
-    })
+    }).as('name')
 
     const GreetingTask = createTask({
-      name: 'greeting',
       using: [NameTask],
       factory: (deps) => `Hello, ${deps.name}!`,
     })
@@ -28,23 +25,19 @@ describe('Basic tasks', () => {
 
   it('should resolve nested dependencies', async () => {
     const FirstNameTask = createTask({
-      name: 'firstName',
       factory: () => 'John',
-    })
+    }).as('firstName')
 
     const LastNameTask = createTask({
-      name: 'lastName',
       factory: () => 'Doe',
-    })
+    }).as('lastName')
 
     const FullNameTask = createTask({
-      name: 'fullName',
       using: [FirstNameTask, LastNameTask],
       factory: (deps) => `${deps.firstName} ${deps.lastName}`,
-    })
+    }).as('fullName')
 
     const GreetingTask = createTask({
-      name: 'greeting',
       using: [FullNameTask],
       factory: (deps) => `Hello, ${deps.fullName}!`,
     })
@@ -56,27 +49,23 @@ describe('Basic tasks', () => {
     let callCount = 0
 
     const CounterTask = createTask({
-      name: 'counter',
       factory: () => {
         callCount++
         return 42
       },
-    })
+    }).as('counter')
 
     const FirstDependentTask = createTask({
-      name: 'firstDependent',
       using: [CounterTask],
       factory: (deps) => deps.counter + 1,
-    })
+    }).as('firstDependent')
 
     const SecondDependentTask = createTask({
-      name: 'secondDependent',
       using: [CounterTask],
       factory: (deps) => deps.counter + 2,
-    })
+    }).as('secondDependent')
 
     const MainTask = createTask({
-      name: 'main',
       using: [FirstDependentTask, SecondDependentTask],
       factory: (deps) => deps.firstDependent + deps.secondDependent,
     })
@@ -89,14 +78,12 @@ describe('Basic tasks', () => {
 describe('Task naming', () => {
   it('should allow renaming tasks using as()', async () => {
     const OriginalTask = createTask({
-      name: 'original',
       factory: () => 100,
     })
 
     const RenamedTask = OriginalTask.as('renamed')
 
     const DependentTask = createTask({
-      name: 'dependent',
       using: [RenamedTask],
       factory: (deps) => deps.renamed + 50,
     })
@@ -108,16 +95,14 @@ describe('Task naming', () => {
 describe('Asynchronous factories', () => {
   it('should handle asynchronous factory functions', async () => {
     const AsyncTask = createTask({
-      name: 'asyncValue',
       factory: () => {
         return new Promise<number>((resolve) => {
           setTimeout(() => resolve(7), 50)
         })
       },
-    })
+    }).as('asyncValue')
 
     const DependentTask = createTask({
-      name: 'dependent',
       using: [AsyncTask],
       factory: (deps) => deps.asyncValue * 3,
     })

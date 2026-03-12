@@ -4,8 +4,8 @@ import {
   ExciloneError,
   ExecutionError,
 } from './errors.js'
-import { __meta } from './internal/meta.js'
-import type { Task, Unit } from './types.js'
+import { __meta, type UnitKey } from './internal/meta.js'
+import type { Unit } from './types.js'
 
 interface ResolveScope<U> {
   value: U
@@ -13,14 +13,14 @@ interface ResolveScope<U> {
 }
 
 export async function resolve<U>(
-  unit: Unit<U, string, readonly Unit[], boolean>
+  unit: Unit<U, UnitKey | null, readonly Unit[]>
 ): Promise<U> {
   const cache = new Map<symbol, U>()
   const bindingGraph = new Map<symbol, Set<symbol>>()
   const resolving = new Set<symbol>()
 
   async function resolveWithScope(
-    unit: Unit<U, string, readonly Unit[], boolean>,
+    unit: Unit<U, UnitKey | null, readonly Unit[]>,
     currentBindings: Map<symbol, U>,
     currentDynamic: Map<symbol, U>
   ): Promise<ResolveScope<U>> {
@@ -39,8 +39,12 @@ export async function resolve<U>(
     const definedBindings = new Set<symbol>()
     let isDynamic = false
 
-    for (const dep of unit.using as readonly Task<U>[]) {
-      if (dep.name in depValues) throw new DuplicateDependencyError(unit.name, dep.name)
+    for (const dep of unit.using as readonly Unit<U, UnitKey | null>[]) {
+      if (dep[__meta].key !== null && dep[__meta].key in depValues)
+        throw new DuplicateDependencyError(
+          String(unit[__meta].identity),
+          String(dep[__meta].key)
+        )
 
       if (dep[__meta].type === 'binding') {
         const value = await dep.factory({})
@@ -58,7 +62,7 @@ export async function resolve<U>(
 
         definedBindings.add(dep[__meta].identity)
         scopeBindings.set(dep[__meta].identity, value)
-        depValues[dep.name] = value
+        if (dep[__meta].key !== null) depValues[dep[__meta].key] = value
       } else if (scopeBindings.has(dep[__meta].identity)) {
         isDynamic = true
         bindingGraph.set(
@@ -68,17 +72,20 @@ export async function resolve<U>(
             unit[__meta].identity,
           ])
         )
-        depValues[dep.name] = scopeBindings.get(dep[__meta].identity) as U
+        if (dep[__meta].key !== null)
+          depValues[dep[__meta].key] = scopeBindings.get(dep[__meta].identity) as U
       } else if (scopeDynamic.has(dep[__meta].identity)) {
         isDynamic = true
-        depValues[dep.name] = scopeDynamic.get(dep[__meta].identity) as U
+        if (dep[__meta].key !== null)
+          depValues[dep[__meta].key] = scopeDynamic.get(dep[__meta].identity) as U
       } else if (cache.has(dep[__meta].identity)) {
-        depValues[dep.name] = cache.get(dep[__meta].identity) as U
+        if (dep[__meta].key !== null)
+          depValues[dep[__meta].key] = cache.get(dep[__meta].identity) as U
       } else {
         try {
           const value = await resolveWithScope(dep, scopeBindings, scopeDynamic)
 
-          depValues[dep.name] = value.value
+          if (dep[__meta].key !== null) depValues[dep[__meta].key] = value.value
 
           if (value.isDynamic) {
             isDynamic = true
@@ -86,7 +93,7 @@ export async function resolve<U>(
           }
         } catch (error) {
           if (error instanceof ExciloneError) throw error
-          throw new ExecutionError(unit.name, error)
+          throw new ExecutionError(String(unit[__meta].identity), error)
         }
       }
     }

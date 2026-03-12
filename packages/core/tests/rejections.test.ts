@@ -5,20 +5,18 @@ import {
   ExecutionError,
   MissingBindingError,
 } from '../src/errors.js'
-import { createTask, declareToken, resolveUnit } from '../src/index.js'
+import { createTask, createToken, resolveUnit } from '../src/index.js'
 
 describe('Error handling', () => {
   it('should propagate errors from factory functions', async () => {
     const FailingTask = createTask({
-      name: 'failing',
       factory: () => {
         throw new Error('Factory error')
       },
     })
 
     const DependentTask = createTask({
-      name: 'dependent',
-      using: [FailingTask],
+      using: [FailingTask.as('failing')],
       factory: (deps) => deps.failing + 1,
     })
 
@@ -27,18 +25,15 @@ describe('Error handling', () => {
 
   it('should detect duplicate dependency names and throw an error', async () => {
     const Task1 = createTask({
-      name: 'sharedDep',
       factory: () => 10,
     })
 
     const Task2 = createTask({
-      name: 'sharedDep',
       factory: () => 20,
     })
 
     const MainTask = createTask({
-      name: 'main',
-      using: [Task1, Task2],
+      using: [Task1.as('sharedDep'), Task2.as('sharedDep')],
       factory: (deps) => deps.sharedDep + 5,
     })
 
@@ -49,13 +44,11 @@ describe('Error handling', () => {
 describe('Circular dependencies', () => {
   it('should detect circular dependencies and throw an error', async () => {
     const TaskA = createTask({
-      name: 'taskA',
       factory: () => 52,
     })
 
     const TaskB = createTask({
-      name: 'taskB',
-      using: [TaskA],
+      using: [TaskA.as('taskA')],
       factory: (deps) => deps.taskA + 1,
     })
 
@@ -67,19 +60,16 @@ describe('Circular dependencies', () => {
 
   it('should detect indirect circular dependencies and throw an error', async () => {
     const TaskX = createTask({
-      name: 'taskX',
       factory: () => 'X',
     })
 
     const TaskY = createTask({
-      name: 'taskY',
-      using: [TaskX],
+      using: [TaskX.as('taskX')],
       factory: (deps) => `${deps.taskX}Y`,
     })
 
     const TaskZ = createTask({
-      name: 'taskZ',
-      using: [TaskY],
+      using: [TaskY.as('taskY')],
       factory: (deps) => `${deps.taskY}Z`,
     })
 
@@ -91,7 +81,6 @@ describe('Circular dependencies', () => {
 
   it('should handle self-referencing tasks and throw an error', async () => {
     const SelfRefTask = createTask({
-      name: 'selfRef',
       factory: () => 'Self',
     })
 
@@ -104,13 +93,10 @@ describe('Circular dependencies', () => {
 
 describe('Token binding errors', () => {
   it('should throw an error when a required token is not bound', async () => {
-    const createToken = declareToken<number>()
-
-    const Token = createToken('requiredToken')
+    const Token = createToken<number>()
 
     const MainTask = createTask({
-      name: 'main',
-      using: [Token],
+      using: [Token.as('requiredToken')],
       factory: (deps) => deps.requiredToken * 2,
     })
 
@@ -118,19 +104,15 @@ describe('Token binding errors', () => {
   })
 
   it('should throw an error when a token is bound dynamically but required statically', async () => {
-    const createToken = declareToken<string>()
-
-    const DynamicToken = createToken('dynamicToken')
+    const DynamicToken = createToken<string>()
 
     const DynamicBindingTask = createTask({
-      name: 'dynamicBindingTask',
-      using: [DynamicToken('dynamicValue')],
+      using: [DynamicToken.bind('dynamicValue').as('dynamicToken')],
       factory: (deps) => deps.dynamicToken,
     })
 
     const MainTask = createTask({
-      name: 'mainTask',
-      using: [DynamicBindingTask, DynamicToken],
+      using: [DynamicBindingTask, DynamicToken.as('dynamicToken')],
       factory: (deps) => deps.dynamicToken.toUpperCase(),
     })
 
@@ -138,19 +120,15 @@ describe('Token binding errors', () => {
   })
 
   it('should throw an error when a binding is not in the correct scope', async () => {
-    const createToken = declareToken<boolean>()
-
-    const FlagToken = createToken('flagToken')
+    const FlagToken = createToken<boolean>().as('flagToken')
 
     const DependentTask = createTask({
-      name: 'dependentTask',
       using: [FlagToken],
       factory: (deps) => (deps.flagToken ? 'ON' : 'OFF'),
-    })
+    }).as('dependentTask')
 
     const MainTask = createTask({
-      name: 'mainTask',
-      using: [DependentTask, FlagToken(true)],
+      using: [DependentTask, FlagToken.bind(true)],
       factory: (deps) => deps.dependentTask,
     })
 

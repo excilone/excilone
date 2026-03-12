@@ -10,13 +10,12 @@ Creating a simple **Task** with dependencies:
 import { createTask, resolveUnit } from '@excilone/core'
 
 const UserTask = createTask({
-  name: 'user',
   factory: () => 'John Doe'
 })
 
 const GreetingTask = createTask({
   name: 'greeting',
-  using: [UserTask],
+  using: [UserTask.as('user')],
   factory: (deps) => `Hello, ${deps.user}!`
 })
 
@@ -26,19 +25,19 @@ console.log(await resolveUnit(GreetingTask)) // Hello, John Doe!
 Using **Tokens**:
 
 ```ts
-import { createTask, declareToken, resolveUnit } from '@excilone/core'
+import { createTask, createToken, resolveUnit } from '@excilone/core'
 
-const UserToken = declareToken<string>()('user')
+const UserToken = createToken<string>()
 
 const GreetingTask = createTask({
   name: 'greeting',
-  using: [UserToken], // Requesting to bind `UserToken` in a upper `Unit`
+  using: [UserToken.as('user')], // Requesting to bind `UserToken` in a upper `Unit`
   factory: (deps) => `Hello, ${deps.user}!`
 })
 
 const LogTask = createTask({
   name: 'log',
-  using: [UserToken('John Doe'), GreetingTask],
+  using: [UserToken.bind('John Doe'), GreetingTask.as('greeting')],
   factory: (deps) => console.log(deps.greeting)
 })
 

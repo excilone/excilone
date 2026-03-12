@@ -4,13 +4,14 @@ import { resolve } from './resolver.js'
 import type { CoreUnit, Token, Unit } from './types.js'
 
 export function createTask<T, D extends readonly Unit[] = []>(
-  payload: CoreUnit<T, D>
+  payload: CoreUnit<T, D>,
+  tag?: string
 ): Unit<T, null, D> {
-  return createUnit<T, null, D>(Symbol(), null, 'task', payload)
+  return createUnit<T, null, D>(Symbol(tag), null, 'task', payload)
 }
 
-export function createToken<T>(): Token<T, null> {
-  return createTokenInternl(Symbol(), null)
+export function createToken<T>(tag?: string): Token<T, null> {
+  return createTokenInternl(Symbol(tag), null)
 }
 
 export function resolveUnit<T>(unit: Unit<T>): Promise<T> {

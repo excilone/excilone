@@ -26,9 +26,9 @@ export async function resolve<U>(
   ): Promise<ResolveScope<U>> {
     if (resolving.has(unit[__meta].identity))
       throw new CycleError(
-        Array.from(resolving)
-          .map((id) => id.toString())
-          .concat([unit[__meta].identity.toString()])
+        Array.from([...resolving.values(), unit[__meta].identity]).map((id) =>
+          id.toString()
+        )
       )
 
     resolving.add(unit[__meta].identity)
@@ -42,8 +42,8 @@ export async function resolve<U>(
     for (const dep of unit.using as readonly Unit<U, UnitKey | null>[]) {
       if (dep[__meta].key !== null && dep[__meta].key in depValues)
         throw new DuplicateDependencyError(
-          String(unit[__meta].identity),
-          String(dep[__meta].key)
+          unit[__meta].identity.toString(),
+          dep[__meta].key.toString()
         )
 
       if (dep[__meta].type === 'binding') {
@@ -93,7 +93,7 @@ export async function resolve<U>(
           }
         } catch (error) {
           if (error instanceof ExciloneError) throw error
-          throw new ExecutionError(String(unit[__meta].identity), error)
+          throw new ExecutionError(unit[__meta].identity.toString(), error)
         }
       }
     }

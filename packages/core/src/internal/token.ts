@@ -1,6 +1,5 @@
 import { MissingBindingError } from '../errors.js'
 import type { Binding, Token } from '../types.js'
-import { __bind } from './constants.js'
 import { createUnit } from './unit.js'
 
 function createBinding<T, const N extends string>(
@@ -9,12 +8,11 @@ function createBinding<T, const N extends string>(
   value: T
 ): Binding<T, N> {
   return {
-    ...createUnit<T, N, []>(id, {
+    ...createUnit<T, N, []>(id, 'binding', {
       name,
       using: [],
       factory: () => value,
     }),
-    [__bind]: true,
     as<NewName extends string>(newName: NewName): Binding<T, NewName> {
       return createBinding(id, newName, value)
     },
@@ -30,7 +28,7 @@ export function createToken<T, const N extends string>(id: symbol, name: N): Tok
     configurable: true,
   })
 
-  const { name: _, ...rest } = createUnit<T, N, []>(id, {
+  const { name: _, ...rest } = createUnit<T, N, []>(id, 'token', {
     name,
     using: [],
     factory: () => {
@@ -40,7 +38,6 @@ export function createToken<T, const N extends string>(id: symbol, name: N): Tok
 
   return Object.assign(providerFn, {
     ...rest,
-    [__bind]: false as const,
     as<NewName extends string>(newName: NewName): Token<T, NewName> {
       return createToken(id, newName)
     },

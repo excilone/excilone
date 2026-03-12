@@ -6,7 +6,7 @@ import type { Task, TokenDeclaration, Unit, UnitPayload } from './types.js'
 export function createTask<T, const N extends string, D extends readonly Unit[] = []>(
   payload: UnitPayload<T, N, D>
 ): Task<T, N, D> {
-  return createUnit(Symbol(payload.name), payload)
+  return createUnit(Symbol(payload.name), 'task', payload)
 }
 
 export function declareToken<T>(): TokenDeclaration<T> {

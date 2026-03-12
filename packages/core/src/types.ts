@@ -1,4 +1,4 @@
-import type { __bind, __identity } from './internal/constants.js'
+import type { __meta, Meta } from './internal/meta.js'
 
 export interface Task<
   T = unknown,
@@ -25,9 +25,8 @@ export interface Unit<
   D extends readonly Unit[] = any,
   B extends boolean = boolean,
 > extends UnitPayload<T, N, D> {
-  readonly [__identity]: symbol
-  readonly [__bind]: B
   readonly using: D
+  readonly [__meta]: Meta
   // all units can be renamed
   as<NewName extends string>(name: NewName): Unit<T, NewName, D, B>
 }

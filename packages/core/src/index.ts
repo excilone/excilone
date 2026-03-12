@@ -18,4 +18,5 @@ export function resolveUnit<T>(unit: Unit<T>): Promise<T> {
   return resolve(unit)
 }
 
+export type { UnitKey } from './internal/meta.js'
 export type * from './types.js'

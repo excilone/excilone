@@ -33,7 +33,7 @@ export async function resolve<U>(
 
     resolving.add(unit[__meta].identity)
 
-    const depValues: Record<string, U> = {}
+    const depValues: Record<UnitKey, U> = {}
     const scopeBindings = new Map(currentBindings)
     const scopeDynamic = new Map(currentDynamic)
     const definedBindings = new Set<symbol>()

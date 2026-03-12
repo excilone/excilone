@@ -23,6 +23,21 @@ describe('Basic tasks', () => {
     await expect(resolveUnit(GreetingTask)).resolves.toBe('Hello, Alice!')
   })
 
+  it('should resolve task with symbol key', async () => {
+    const AgeTask = createTask({
+      factory: () => 30,
+    })
+
+    const key = Symbol('age')
+
+    const MainTask = createTask({
+      using: [AgeTask.as(key)],
+      factory: (deps) => `Age is ${deps[key]}`,
+    })
+
+    await expect(resolveUnit(MainTask)).resolves.toBe('Age is 30')
+  })
+
   it('should resolve nested dependencies', async () => {
     const FirstNameTask = createTask({
       factory: () => 'John',

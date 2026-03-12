@@ -1,8 +1,10 @@
 import type { __meta, Meta, UnitKey } from './internal/meta.js'
 
+export type Factory<T, D extends readonly Unit[]> = (deps: MapUnits<D>) => T | Promise<T>
+
 export interface CoreUnit<T, D extends readonly Unit[]> {
   readonly using: D
-  readonly factory: (deps: MapUnits<D>) => T | Promise<T>
+  readonly factory: Factory<T, D>
 }
 
 export interface Unit<

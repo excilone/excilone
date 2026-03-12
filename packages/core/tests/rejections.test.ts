@@ -9,10 +9,8 @@ import { createTask, createToken, resolveUnit } from '../src/index.js'
 
 describe('Error handling', () => {
   it('should propagate errors from factory functions', async () => {
-    const FailingTask = createTask({
-      factory: () => {
-        throw new Error('Factory error')
-      },
+    const FailingTask = createTask(() => {
+      throw new Error('Factory error')
     })
 
     const DependentTask = createTask({
@@ -24,13 +22,9 @@ describe('Error handling', () => {
   })
 
   it('should detect duplicate dependency names and throw an error', async () => {
-    const Task1 = createTask({
-      factory: () => 10,
-    })
+    const Task1 = createTask(() => 10)
 
-    const Task2 = createTask({
-      factory: () => 20,
-    })
+    const Task2 = createTask(() => 20)
 
     const MainTask = createTask({
       using: [Task1.as('sharedDep'), Task2.as('sharedDep')],
@@ -43,9 +37,7 @@ describe('Error handling', () => {
 
 describe('Circular dependencies', () => {
   it('should detect circular dependencies and throw an error', async () => {
-    const TaskA = createTask({
-      factory: () => 52,
-    })
+    const TaskA = createTask(() => 52)
 
     const TaskB = createTask({
       using: [TaskA.as('taskA')],
@@ -59,9 +51,7 @@ describe('Circular dependencies', () => {
   })
 
   it('should detect indirect circular dependencies and throw an error', async () => {
-    const TaskX = createTask({
-      factory: () => 'X',
-    })
+    const TaskX = createTask(() => 'X')
 
     const TaskY = createTask({
       using: [TaskX.as('taskX')],
@@ -80,9 +70,7 @@ describe('Circular dependencies', () => {
   })
 
   it('should handle self-referencing tasks and throw an error', async () => {
-    const SelfRefTask = createTask({
-      factory: () => 'Self',
-    })
+    const SelfRefTask = createTask(() => 'Self')
 
     // Introducing self-reference
     SelfRefTask.using.push(SelfRefTask as never)

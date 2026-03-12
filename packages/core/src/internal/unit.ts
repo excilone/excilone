@@ -9,7 +9,6 @@ export function createUnit<T, K extends UnitKey | null, D extends readonly Unit[
 ): Unit<T, K, D> {
   return {
     ...payload,
-    using: payload.using ?? ([] as unknown as D),
     [__meta]: {
       identity: id,
       type,

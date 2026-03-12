@@ -8,6 +8,6 @@ export default defineConfig({
   unbundle: true,
   minify: true,
   tsconfig: 'tsconfig.lib.json',
-  platform: 'node',
+  platform: 'neutral',
   publint: true,
 })

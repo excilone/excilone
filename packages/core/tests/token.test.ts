@@ -140,6 +140,32 @@ describe('Token and Binding creation', () => {
     expect(callCount).toBe(2)
   })
 
+  it('should detect dynamic task dependencies correctly', async () => {
+    const NumberToken = createToken<number>()
+
+    const DynamicTask = createTask({
+      using: [NumberToken.as('number')],
+      factory: (deps) => deps.number * 3,
+    })
+
+    const InnerTask = createTask({
+      using: [DynamicTask.as('dynamic')],
+      factory: (deps) => deps.dynamic + 2,
+    })
+
+    const MainTask = createTask({
+      using: [
+        NumberToken.bind(4),
+        InnerTask.as('first'),
+        NumberToken.bind(10),
+        InnerTask.as('second'),
+      ],
+      factory: (deps) => deps.first + deps.second,
+    })
+
+    await expect(resolveUnit(MainTask)).resolves.toBe(4 * 3 + 2 + (10 * 3 + 2))
+  })
+
   it('should allow reusing tokens in different task', async () => {
     const ValueToken = createToken<number>().as('value')
 

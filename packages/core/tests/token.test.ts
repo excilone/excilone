@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createTask, createToken, resolveUnit } from '../src/index.js'
+import { createTask, createToken, resolve } from '../src/index.js'
 
 describe('Token and Binding creation', () => {
   it('should create a token and binding correctly', async () => {
@@ -10,7 +10,7 @@ describe('Token and Binding creation', () => {
       factory: (deps) => `Hello, ${deps.name}`,
     })
 
-    await expect(resolveUnit(GreetingTask)).resolves.toBe('Hello, World')
+    await expect(resolve(GreetingTask)).resolves.toBe('Hello, World')
   })
 
   it('should use the nearest binding', async () => {
@@ -34,7 +34,7 @@ describe('Token and Binding creation', () => {
       }),
     })
 
-    await expect(resolveUnit(MainTask)).resolves.toEqual({
+    await expect(resolve(MainTask)).resolves.toEqual({
       personAge: 30,
       childPersonAge: 12,
     })
@@ -58,7 +58,7 @@ describe('Token and Binding creation', () => {
       factory: (deps) => `Main task says: ${deps.fg}. ${deps.outer}.`,
     })
 
-    await expect(resolveUnit(MainTask)).resolves.toBe(
+    await expect(resolve(MainTask)).resolves.toBe(
       'Main task says: Foreground color is: red. Outer task says: Foreground color is: blue.'
     )
   })
@@ -81,7 +81,7 @@ describe('Token and Binding creation', () => {
       factory: (deps) => `${deps.taskA}; ${deps.taskB}`,
     })
 
-    await expect(resolveUnit(MainTask)).resolves.toBe('Flag is true; Flag is false')
+    await expect(resolve(MainTask)).resolves.toBe('Flag is true; Flag is false')
   })
 
   it('should not override units when declaring new bindings', async () => {
@@ -100,7 +100,7 @@ describe('Token and Binding creation', () => {
       }),
     })
 
-    await expect(resolveUnit(MainTask)).resolves.toEqual({
+    await expect(resolve(MainTask)).resolves.toEqual({
       sizeUnitValue: 15,
       sizeTokenValue: 20,
     })
@@ -134,7 +134,7 @@ describe('Token and Binding creation', () => {
       factory: (deps) => deps.inner + deps.anotherInner + deps.numberTask,
     })
 
-    await expect(resolveUnit(MainTask)).resolves.toBe(
+    await expect(resolve(MainTask)).resolves.toBe(
       [7 * 2 + 1, 5 * 2 + 5, 5 * 2].reduce((a, b) => a + b, 0)
     )
     expect(callCount).toBe(2)
@@ -163,7 +163,7 @@ describe('Token and Binding creation', () => {
       factory: (deps) => deps.first + deps.second,
     })
 
-    await expect(resolveUnit(MainTask)).resolves.toBe(4 * 3 + 2 + (10 * 3 + 2))
+    await expect(resolve(MainTask)).resolves.toBe(4 * 3 + 2 + (10 * 3 + 2))
   })
 
   it('should allow reusing tokens in different task', async () => {
@@ -187,7 +187,7 @@ describe('Token and Binding creation', () => {
       }),
     })
 
-    await expect(resolveUnit(MainTask)).resolves.toEqual({
+    await expect(resolve(MainTask)).resolves.toEqual({
       resultA: 20,
       resultB: 25,
     })

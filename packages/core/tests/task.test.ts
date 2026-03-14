@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { createTask, resolveUnit } from '../src/index.js'
+import { createTask, resolve } from '../src/index.js'
 
 describe('Basic tasks', () => {
   it('should resolve single task', async () => {
     const GreetingTask = createTask(() => 'World')
 
-    await expect(resolveUnit(GreetingTask)).resolves.toBe('World')
+    await expect(resolve(GreetingTask)).resolves.toBe('World')
   })
 
   it('should resolve task with dependency', async () => {
@@ -16,7 +16,7 @@ describe('Basic tasks', () => {
       factory: (deps) => `Hello, ${deps.name}!`,
     })
 
-    await expect(resolveUnit(GreetingTask)).resolves.toBe('Hello, Alice!')
+    await expect(resolve(GreetingTask)).resolves.toBe('Hello, Alice!')
   })
 
   it('should resolve task with symbol key', async () => {
@@ -36,9 +36,7 @@ describe('Basic tasks', () => {
       },
     })
 
-    await expect(resolveUnit(HumanTask)).resolves.toBe(
-      'Your name is Bob and your age is 30'
-    )
+    await expect(resolve(HumanTask)).resolves.toBe('Your name is Bob and your age is 30')
   })
 
   it('should resolve nested dependencies', async () => {
@@ -56,7 +54,7 @@ describe('Basic tasks', () => {
       factory: (deps) => `Hello, ${deps.fullName}!`,
     })
 
-    await expect(resolveUnit(GreetingTask)).resolves.toBe('Hello, John Doe!')
+    await expect(resolve(GreetingTask)).resolves.toBe('Hello, John Doe!')
   })
 
   it('should execute factory functions only once per task', async () => {
@@ -82,7 +80,7 @@ describe('Basic tasks', () => {
       factory: (deps) => deps.firstDependent + deps.secondDependent,
     })
 
-    await expect(resolveUnit(MainTask)).resolves.toBe(87)
+    await expect(resolve(MainTask)).resolves.toBe(87)
     expect(callCount).toBe(1)
   })
 })
@@ -98,7 +96,7 @@ describe('Task naming', () => {
       factory: (deps) => deps.renamed + 50,
     })
 
-    await expect(resolveUnit(DependentTask)).resolves.toBe(150)
+    await expect(resolve(DependentTask)).resolves.toBe(150)
   })
 })
 
@@ -113,6 +111,6 @@ describe('Asynchronous factories', () => {
       factory: (deps) => deps.asyncValue * 3,
     })
 
-    await expect(resolveUnit(DependentTask)).resolves.toBe(21)
+    await expect(resolve(DependentTask)).resolves.toBe(21)
   })
 })

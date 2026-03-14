@@ -30,7 +30,7 @@ export function createContainer(): Container {
   return createContainerInternal()
 }
 
-export function resolveUnit<T>(unit: Unit<T>): Promise<T> {
+export function resolve<T>(unit: Unit<T>): Promise<T> {
   return createContainer().get(unit)
 }
 

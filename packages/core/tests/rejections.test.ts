@@ -5,7 +5,7 @@ import {
   ExecutionError,
   MissingBindingError,
 } from '../src/errors.js'
-import { createTask, createToken, resolveUnit } from '../src/index.js'
+import { createTask, createToken, resolve } from '../src/index.js'
 
 describe('Error handling', () => {
   it('should propagate errors from factory functions', async () => {
@@ -18,7 +18,7 @@ describe('Error handling', () => {
       factory: (deps) => deps.failing + 1,
     })
 
-    await expect(resolveUnit(DependentTask)).rejects.toThrow(ExecutionError)
+    await expect(resolve(DependentTask)).rejects.toThrow(ExecutionError)
   })
 
   it('should detect duplicate dependency names and throw an error', async () => {
@@ -31,7 +31,7 @@ describe('Error handling', () => {
       factory: (deps) => deps.sharedDep + 5,
     })
 
-    await expect(resolveUnit(MainTask)).rejects.toThrow(DuplicateDependencyError)
+    await expect(resolve(MainTask)).rejects.toThrow(DuplicateDependencyError)
   })
 })
 
@@ -47,7 +47,7 @@ describe('Circular dependencies', () => {
     // Introducing circular dependency
     TaskA.using.push(TaskB as never)
 
-    await expect(resolveUnit(TaskA)).rejects.toThrow(CycleError)
+    await expect(resolve(TaskA)).rejects.toThrow(CycleError)
   })
 
   it('should detect indirect circular dependencies and throw an error', async () => {
@@ -66,7 +66,7 @@ describe('Circular dependencies', () => {
     // Introducing indirect circular dependency
     TaskX.using.push(TaskZ as never)
 
-    await expect(resolveUnit(TaskX)).rejects.toThrow(CycleError)
+    await expect(resolve(TaskX)).rejects.toThrow(CycleError)
   })
 
   it('should handle self-referencing tasks and throw an error', async () => {
@@ -75,7 +75,7 @@ describe('Circular dependencies', () => {
     // Introducing self-reference
     SelfRefTask.using.push(SelfRefTask as never)
 
-    await expect(resolveUnit(SelfRefTask)).rejects.toThrow(CycleError)
+    await expect(resolve(SelfRefTask)).rejects.toThrow(CycleError)
   })
 })
 
@@ -88,7 +88,7 @@ describe('Token binding errors', () => {
       factory: (deps) => deps.requiredToken * 2,
     })
 
-    await expect(resolveUnit(MainTask)).rejects.toThrow(MissingBindingError)
+    await expect(resolve(MainTask)).rejects.toThrow(MissingBindingError)
   })
 
   it('should throw an error when a token is bound dynamically but required statically', async () => {
@@ -104,7 +104,7 @@ describe('Token binding errors', () => {
       factory: (deps) => deps.dynamicToken.toUpperCase(),
     })
 
-    await expect(resolveUnit(MainTask)).rejects.toThrow(MissingBindingError)
+    await expect(resolve(MainTask)).rejects.toThrow(MissingBindingError)
   })
 
   it('should throw an error when a binding is not in the correct scope', async () => {
@@ -120,6 +120,6 @@ describe('Token binding errors', () => {
       factory: (deps) => deps.dependentTask,
     })
 
-    await expect(resolveUnit(MainTask)).rejects.toThrow(MissingBindingError)
+    await expect(resolve(MainTask)).rejects.toThrow(MissingBindingError)
   })
 })

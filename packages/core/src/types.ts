@@ -22,6 +22,10 @@ export interface Token<T, K extends UnitKey | null> extends Unit<T, K, []> {
   bind(data: T): Unit<T, K, []>
 }
 
+export interface Container {
+  get<T>(unit: Unit<T>): Promise<T>
+}
+
 export type MapUnits<D extends readonly Unit[]> = {
   [K in D[number] as K extends Unit<unknown, infer N extends UnitKey>
     ? N

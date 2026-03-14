@@ -78,7 +78,15 @@ export function createContainer(): Container {
   }
 
   return {
-    get,
+    async get(unit) {
+      try {
+        return await get(unit)
+      } catch (error) {
+        stack.clear(context, graph)
+        resolving.clear()
+        throw error
+      }
+    },
   }
 }
 
@@ -90,6 +98,20 @@ interface Step {
 
 export function createStack() {
   const stack: Step[] = []
+
+  const mutate = (
+    n: number,
+    context: Map<symbol, unknown>,
+    graph: Map<symbol, Set<symbol>>
+  ) => {
+    for (let i = 0; i < n; i++) {
+      const top = stack.pop()
+      if (!top) break
+      for (const [key, value] of top.replace) context.set(key, value)
+      for (const key of top.delete) context.delete(key)
+      for (const [key, bindings] of top.bindings) graph.set(key, bindings)
+    }
+  }
 
   return {
     push() {
@@ -114,13 +136,10 @@ export function createStack() {
       clearDependants(unit[__meta].identity)
     },
     run(context: Map<symbol, unknown>, graph: Map<symbol, Set<symbol>>) {
-      const top = stack.pop()
-
-      if (top) {
-        for (const [key, value] of top.replace) context.set(key, value)
-        for (const key of top.delete) context.delete(key)
-        for (const [key, bindings] of top.bindings) graph.set(key, bindings)
-      }
+      mutate(1, context, graph)
+    },
+    clear(context: Map<symbol, unknown>, graph: Map<symbol, Set<symbol>>) {
+      mutate(stack.length, context, graph)
     },
   }
 }

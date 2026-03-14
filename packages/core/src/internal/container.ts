@@ -60,13 +60,12 @@ export function createContainer(): Container {
         )
 
       const value = await get(dep)
-      if (dep[__meta].type !== 'task') {
+      if (graph.has(dep[__meta].identity)) {
         const bindings = graph.get(dep[__meta].identity) ?? new Set()
         bindings.add(unit[__meta].identity)
         graph.set(dep[__meta].identity, bindings)
+        if (!graph.has(unit[__meta].identity)) graph.set(unit[__meta].identity, new Set())
       }
-      // const t = dep[__meta].type
-      // if (t !== 'task') stack.delete(dep[__meta].identity)
       if (dep[__meta].key !== null) values[dep[__meta].key] = value
     }
 
@@ -102,9 +101,17 @@ export function createStack() {
       if (context.has(unit[__meta].identity))
         top.replace.set(unit[__meta].identity, context.get(unit[__meta].identity))
       else top.delete.add(unit[__meta].identity)
-      const bindings = graph.get(unit[__meta].identity)
-      if (bindings && !top.bindings.has(unit[__meta].identity))
-        top.bindings.set(unit[__meta].identity, bindings)
+      const clearDependants = (id: symbol) => {
+        const dependants = graph.get(id)
+        if (dependants) {
+          graph.set(id, new Set())
+          top.bindings.set(id, dependants)
+          for (const dep of dependants) {
+            clearDependants(dep)
+          }
+        }
+      }
+      clearDependants(unit[__meta].identity)
     },
     run(context: Map<symbol, unknown>, graph: Map<symbol, Set<symbol>>) {
       const top = stack.pop()

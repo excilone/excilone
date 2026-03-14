@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createTask, createToken, resolveUnit } from '../src/index.js'
+import { createTask, createToken, resolve } from '../src/index.js'
 
 describe('Token and Binding creation', () => {
   it('should create a token and binding correctly', async () => {
@@ -10,7 +10,7 @@ describe('Token and Binding creation', () => {
       factory: (deps) => `Hello, ${deps.name}`,
     })
 
-    await expect(resolveUnit(GreetingTask)).resolves.toBe('Hello, World')
+    await expect(resolve(GreetingTask)).resolves.toBe('Hello, World')
   })
 
   it('should use the nearest binding', async () => {
@@ -34,7 +34,7 @@ describe('Token and Binding creation', () => {
       }),
     })
 
-    await expect(resolveUnit(MainTask)).resolves.toEqual({
+    await expect(resolve(MainTask)).resolves.toEqual({
       personAge: 30,
       childPersonAge: 12,
     })
@@ -58,7 +58,7 @@ describe('Token and Binding creation', () => {
       factory: (deps) => `Main task says: ${deps.fg}. ${deps.outer}.`,
     })
 
-    await expect(resolveUnit(MainTask)).resolves.toBe(
+    await expect(resolve(MainTask)).resolves.toBe(
       'Main task says: Foreground color is: red. Outer task says: Foreground color is: blue.'
     )
   })
@@ -81,7 +81,7 @@ describe('Token and Binding creation', () => {
       factory: (deps) => `${deps.taskA}; ${deps.taskB}`,
     })
 
-    await expect(resolveUnit(MainTask)).resolves.toBe('Flag is true; Flag is false')
+    await expect(resolve(MainTask)).resolves.toBe('Flag is true; Flag is false')
   })
 
   it('should not override units when declaring new bindings', async () => {
@@ -100,10 +100,36 @@ describe('Token and Binding creation', () => {
       }),
     })
 
-    await expect(resolveUnit(MainTask)).resolves.toEqual({
+    await expect(resolve(MainTask)).resolves.toEqual({
       sizeUnitValue: 15,
       sizeTokenValue: 20,
     })
+  })
+
+  it('should use the correct binding in nested tasks', async () => {
+    const ValueToken = createToken<number>().as('value')
+
+    const ValueTask = createTask({
+      using: [ValueToken],
+      factory: (deps) => deps.value * 2,
+    }).as('task')
+
+    const FirstTask = createTask({
+      using: [ValueToken.bind(3), ValueTask],
+      factory: (deps) => deps.task + 1,
+    }).as('first')
+
+    const SecondTask = createTask({
+      using: [ValueToken.bind(5), ValueTask],
+      factory: (deps) => deps.task + 1,
+    }).as('second')
+
+    const MainTask = createTask({
+      using: [FirstTask, SecondTask],
+      factory: (deps) => `${deps.first}, ${deps.second}`,
+    })
+
+    await expect(resolve(MainTask)).resolves.toBe('7, 11')
   })
 
   it('should execute factory functions only once per binding', async () => {
@@ -134,10 +160,68 @@ describe('Token and Binding creation', () => {
       factory: (deps) => deps.inner + deps.anotherInner + deps.numberTask,
     })
 
-    await expect(resolveUnit(MainTask)).resolves.toBe(
+    await expect(resolve(MainTask)).resolves.toBe(
       [7 * 2 + 1, 5 * 2 + 5, 5 * 2].reduce((a, b) => a + b, 0)
     )
     expect(callCount).toBe(2)
+  })
+
+  it('should detect dynamic task dependencies correctly', async () => {
+    const NumberToken = createToken<number>()
+
+    const DynamicTask = createTask({
+      using: [NumberToken.as('number')],
+      factory: (deps) => deps.number * 3,
+    })
+
+    const InnerTask = createTask({
+      using: [DynamicTask.as('dynamic')],
+      factory: (deps) => deps.dynamic + 2,
+    })
+
+    const MainTask = createTask({
+      using: [
+        NumberToken.bind(4),
+        InnerTask.as('first'),
+        NumberToken.bind(10),
+        InnerTask.as('second'),
+      ],
+      factory: (deps) => deps.first + deps.second,
+    })
+
+    await expect(resolve(MainTask)).resolves.toBe(4 * 3 + 2 + (10 * 3 + 2))
+  })
+
+  it('should execute factory functions only once per binding with dynamic tasks', async () => {
+    const NumberToken = createToken<number>()
+    let calls = 0
+
+    const DynamicTask = createTask({
+      using: [NumberToken.as('number')],
+      factory: (deps) => deps.number * 3,
+    })
+
+    const InnerTask = createTask({
+      using: [DynamicTask.as('dynamic')],
+      factory: (deps) => {
+        calls++
+        return deps.dynamic + 2
+      },
+    })
+
+    const MainTask = createTask({
+      using: [
+        NumberToken.bind(4),
+        InnerTask.as('first'),
+        NumberToken.bind(10),
+        InnerTask.as('second'),
+        InnerTask.as('third'),
+      ],
+      factory: (deps) => deps.first + deps.second + deps.third,
+    })
+
+    await expect(resolve(MainTask)).resolves.toBe(4 * 3 + 2 + (10 * 3 + 2) * 2)
+    expect(calls).toBe(2)
   })
 
   it('should allow reusing tokens in different task', async () => {
@@ -161,7 +245,7 @@ describe('Token and Binding creation', () => {
       }),
     })
 
-    await expect(resolveUnit(MainTask)).resolves.toEqual({
+    await expect(resolve(MainTask)).resolves.toEqual({
       resultA: 20,
       resultB: 25,
     })

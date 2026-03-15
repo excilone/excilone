@@ -88,10 +88,12 @@ export function createContainer(sync: boolean): Container<boolean> {
   }
 
   return {
-    get(unit) {
+    get<T, USync extends boolean>(
+      unit: Unit<T, USync>
+    ): (USync extends true ? T : Promise<T>) | Promise<T> {
       const generator = get(unit)
       try {
-        if (sync) return executeSync(generator, generator.next())
+        if (sync) return executeSync(generator, generator.next()) as Promise<T>
         return execute(generator, generator.next())
       } catch (error) {
         if (sync) throw error

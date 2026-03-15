@@ -140,20 +140,6 @@ interface Step {
 export function createStack() {
   const stack: Step[] = []
 
-  const mutate = (
-    n: number,
-    context: Map<symbol, unknown>,
-    graph: Map<symbol, Set<symbol>>
-  ) => {
-    for (let i = 0; i < n; i++) {
-      const top = stack.pop()
-      if (!top) break
-      for (const [key, value] of top.replace) context.set(key, value)
-      for (const key of top.delete) context.delete(key)
-      for (const [key, bindings] of top.bindings) graph.set(key, bindings)
-    }
-  }
-
   return {
     push() {
       stack.push({ replace: new Map(), delete: new Set(), bindings: new Map() })
@@ -177,10 +163,11 @@ export function createStack() {
       clearDependants(unit[__meta].identity)
     },
     run(context: Map<symbol, unknown>, graph: Map<symbol, Set<symbol>>) {
-      mutate(1, context, graph)
-    },
-    clear(context: Map<symbol, unknown>, graph: Map<symbol, Set<symbol>>) {
-      mutate(stack.length, context, graph)
+      const top = stack.pop()
+      if (!top) return
+      for (const [key, value] of top.replace) context.set(key, value)
+      for (const key of top.delete) context.delete(key)
+      for (const [key, bindings] of top.bindings) graph.set(key, bindings)
     },
   }
 }

@@ -1,32 +1,32 @@
 import { describe, expect, it } from 'vitest'
-import { createTask, resolve } from '../src/index.js'
+import { createSyncTask, createTask, resolve, resolveSync } from '../src/index.js'
 
 describe('Basic tasks', () => {
-  it('should resolve single task', async () => {
-    const GreetingTask = createTask(() => 'World')
+  it('should resolve single task', () => {
+    const GreetingTask = createSyncTask(() => 'World')
 
-    await expect(resolve(GreetingTask)).resolves.toBe('World')
+    expect(resolveSync(GreetingTask)).toBe('World')
   })
 
-  it('should resolve task with dependency', async () => {
-    const NameTask = createTask(() => 'Alice').as('name')
+  it('should resolve task with dependency', () => {
+    const NameTask = createSyncTask(() => 'Alice').as('name')
 
-    const GreetingTask = createTask({
+    const GreetingTask = createSyncTask({
       using: [NameTask],
       factory: (deps) => `Hello, ${deps.name}!`,
     })
 
-    await expect(resolve(GreetingTask)).resolves.toBe('Hello, Alice!')
+    expect(resolveSync(GreetingTask)).toBe('Hello, Alice!')
   })
 
-  it('should resolve task with symbol key', async () => {
-    const NameTask = createTask(() => 'Bob')
-    const AgeTask = createTask(() => 30)
+  it('should resolve task with symbol key', () => {
+    const NameTask = createSyncTask(() => 'Bob')
+    const AgeTask = createSyncTask(() => 30)
 
     const name = Symbol('name')
     const age = Symbol('age')
 
-    const HumanTask = createTask({
+    const HumanTask = createSyncTask({
       using: [NameTask.as(name), AgeTask.as(age)],
       factory: (deps) => {
         const n = deps[name]
@@ -36,81 +36,79 @@ describe('Basic tasks', () => {
       },
     })
 
-    await expect(resolve(HumanTask)).resolves.toBe('Your name is Bob and your age is 30')
+    expect(resolveSync(HumanTask)).toBe('Your name is Bob and your age is 30')
   })
 
-  it('should resolve nested dependencies', async () => {
-    const FirstNameTask = createTask(() => 'John').as('firstName')
+  it('should resolve nested dependencies', () => {
+    const FirstNameTask = createSyncTask(() => 'John').as('firstName')
 
-    const LastNameTask = createTask(() => 'Doe').as('lastName')
+    const LastNameTask = createSyncTask(() => 'Doe').as('lastName')
 
-    const FullNameTask = createTask({
+    const FullNameTask = createSyncTask({
       using: [FirstNameTask, LastNameTask],
       factory: (deps) => `${deps.firstName} ${deps.lastName}`,
     }).as('fullName')
 
-    const GreetingTask = createTask({
+    const GreetingTask = createSyncTask({
       using: [FullNameTask],
       factory: (deps) => `Hello, ${deps.fullName}!`,
     })
 
-    await expect(resolve(GreetingTask)).resolves.toBe('Hello, John Doe!')
+    expect(resolveSync(GreetingTask)).toBe('Hello, John Doe!')
   })
 
-  it('should execute factory functions only once per task', async () => {
+  it('should execute factory functions only once per task', () => {
     let callCount = 0
 
-    const CounterTask = createTask(() => {
+    const CounterTask = createSyncTask(() => {
       callCount++
       return 42
     }).as('counter')
 
-    const FirstDependentTask = createTask({
+    const FirstDependentTask = createSyncTask({
       using: [CounterTask],
       factory: (deps) => deps.counter + 1,
     }).as('firstDependent')
 
-    const SecondDependentTask = createTask({
+    const SecondDependentTask = createSyncTask({
       using: [CounterTask],
       factory: (deps) => deps.counter + 2,
     }).as('secondDependent')
 
-    const MainTask = createTask({
+    const MainTask = createSyncTask({
       using: [FirstDependentTask, SecondDependentTask],
       factory: (deps) => deps.firstDependent + deps.secondDependent,
     })
 
-    await expect(resolve(MainTask)).resolves.toBe(87)
+    expect(resolveSync(MainTask)).toBe(87)
     expect(callCount).toBe(1)
   })
 })
 
 describe('Task naming', () => {
-  it('should allow renaming tasks using as()', async () => {
-    const OriginalTask = createTask(() => 100)
+  it('should allow renaming tasks using as()', () => {
+    const OriginalTask = createSyncTask(() => 100)
 
     const RenamedTask = OriginalTask.as('renamed')
 
-    const DependentTask = createTask({
+    const DependentTask = createSyncTask({
       using: [RenamedTask],
       factory: (deps) => deps.renamed + 50,
     })
 
-    await expect(resolve(DependentTask)).resolves.toBe(150)
+    expect(resolveSync(DependentTask)).toBe(150)
   })
 })
 
 describe('Asynchronous factories', () => {
-  it('should handle asynchronous factory functions', async () => {
-    const AsyncTask = createTask(() => {
-      return Promise.resolve(7)
-    }).as('asyncValue')
+  it('should handle asynchronous factory functions', () => {
+    const AsyncTask = createTask(() => Promise.resolve(7)).as('asyncValue')
 
     const DependentTask = createTask({
       using: [AsyncTask],
       factory: (deps) => deps.asyncValue * 3,
     })
 
-    await expect(resolve(DependentTask)).resolves.toBe(21)
+    return expect(resolve(DependentTask)).resolves.toBe(21)
   })
 })

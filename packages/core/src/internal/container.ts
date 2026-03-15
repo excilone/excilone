@@ -7,7 +7,7 @@ import {
 import type { Container, Unit } from '../types.js'
 import { __meta, type UnitKey } from './meta.js'
 
-export function createContainer(): Container {
+export function createContainer(sync: boolean): Container<false> {
   const context = new Map<symbol, unknown>()
   const resolving = new Set<symbol>()
   const graph = new Map<symbol, Set<symbol>>()

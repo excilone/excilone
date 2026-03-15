@@ -1,35 +1,42 @@
 import type { __meta, Meta, UnitKey } from './internal/meta.js'
 
-export type Factory<T, D extends readonly Unit[]> = (deps: MapUnits<D>) => T | Promise<T>
+export type Factory<T, S extends boolean, D extends readonly Unit[]> = (
+  deps: MapUnits<D, S>
+) => T
 
-export interface CoreUnit<T, D extends readonly Unit[]> {
+export interface CoreUnit<T, S extends boolean, D extends readonly Unit[]> {
   readonly using: D
-  readonly factory: Factory<T, D>
+  readonly factory: Factory<T, S, D>
 }
 
 export interface Unit<
   T = unknown,
+  S extends boolean = boolean,
   K extends UnitKey | null = UnitKey | null,
   // biome-ignore lint/suspicious/noExplicitAny: any needed for generic constraints
   D extends readonly Unit[] = any,
-> extends CoreUnit<T, D> {
+> extends CoreUnit<T, S, D> {
   readonly [__meta]: Meta<K>
-  as<NewKey extends UnitKey>(k: NewKey): Unit<T, NewKey, D>
+  as<NewKey extends UnitKey>(k: NewKey): Unit<T, S, NewKey, D>
 }
 
-export interface Token<T, K extends UnitKey | null> extends Unit<T, K, []> {
+export interface Token<T, K extends UnitKey | null> extends Unit<T, true, K, []> {
   as<NewKey extends UnitKey>(k: NewKey): Token<T, NewKey>
-  bind(data: T): Unit<T, K, []>
+  bind(data: T): Unit<T, true, K, []>
 }
 
-export interface Container {
-  get<T>(unit: Unit<T>): Promise<T>
+export interface Container<S extends boolean> {
+  get<T>(unit: Unit<T>): S extends true ? T : Promise<T>
 }
 
-export type MapUnits<D extends readonly Unit[]> = {
-  [K in D[number] as K extends Unit<unknown, infer N extends UnitKey>
+export type MapUnits<D extends readonly Unit[], S extends boolean> = {
+  [K in D[number] as K extends Unit<unknown, boolean, infer N extends UnitKey>
     ? N
-    : never]: InferReturnType<K>
+    : never]: K extends Unit<infer T, infer CSync>
+    ? CSync extends true
+      ? T
+      : S extends true
+        ? Promise<T>
+        : Awaited<T>
+    : never
 }
-
-export type InferReturnType<U> = U extends Unit<infer T> ? T : never

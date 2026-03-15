@@ -8,4 +8,5 @@ export interface Meta<K extends UnitKey | null> {
   key: K
   identity: symbol
   type: UnitType
+  sync: boolean
 }

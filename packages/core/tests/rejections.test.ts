@@ -5,11 +5,17 @@ import {
   ExecutionError,
   MissingBindingError,
 } from '../src/errors.js'
-import { createTask, createToken, resolve } from '../src/index.js'
+import {
+  createSyncTask,
+  createTask,
+  createToken,
+  resolve,
+  resolveSync,
+} from '../src/index.js'
 
 describe('Error handling', () => {
-  it('should propagate errors from factory functions', async () => {
-    const FailingTask = createTask(() => {
+  it('should propagate errors from factory functions', () => {
+    const FailingTask = createSyncTask(() => {
       throw new Error('Factory error')
     })
 
@@ -18,20 +24,20 @@ describe('Error handling', () => {
       factory: (deps) => deps.failing + 1,
     })
 
-    await expect(resolve(DependentTask)).rejects.toThrow(ExecutionError)
+    return expect(resolve(DependentTask)).rejects.toThrow(ExecutionError)
   })
 
-  it('should detect duplicate dependency names and throw an error', async () => {
-    const Task1 = createTask(() => 10)
+  it('should detect duplicate dependency names and throw an error', () => {
+    const Task1 = createSyncTask(() => 10)
 
-    const Task2 = createTask(() => 20)
+    const Task2 = createSyncTask(() => 20)
 
-    const MainTask = createTask({
+    const MainTask = createSyncTask({
       using: [Task1.as('sharedDep'), Task2.as('sharedDep')],
       factory: (deps) => deps.sharedDep + 5,
     })
 
-    await expect(resolve(MainTask)).rejects.toThrow(DuplicateDependencyError)
+    expect(() => resolveSync(MainTask)).toThrow(DuplicateDependencyError)
   })
 })
 

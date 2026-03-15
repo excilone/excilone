@@ -7,7 +7,14 @@ import {
 import type { Container, Unit } from '../types.js'
 import { __meta, type UnitKey } from './meta.js'
 
-export function createContainer(sync: boolean): Container<false> {
+interface GeneratorValue<T> {
+  unit: Unit<T>
+  values: Record<UnitKey, unknown>
+}
+
+export function createContainer(sync: false): Container<false>
+export function createContainer(sync: true): Container<true>
+export function createContainer(sync: boolean): Container<boolean> {
   const context = new Map<symbol, unknown>()
   const resolving = new Set<symbol>()
   const graph = new Map<symbol, Set<symbol>>()
@@ -19,9 +26,9 @@ export function createContainer(sync: boolean): Container<false> {
       return deps ? !deps.has(unit[__meta].identity) : false
     })
 
-  const get = async <T>(unit: Unit<T>): Promise<T> => {
+  const get = function* <T>(unit: Unit<T>): Generator<GeneratorValue<T>, T, T> {
     if (unit[__meta].type === 'binding') {
-      const value = await unit.factory({})
+      const value = unit.factory({})
       stack.bind(unit, context, graph)
       context.set(unit[__meta].identity, value)
       graph.set(unit[__meta].identity, new Set())
@@ -30,7 +37,7 @@ export function createContainer(sync: boolean): Container<false> {
     if (context.has(unit[__meta].identity) && !needToResolve(unit))
       return context.get(unit[__meta].identity) as T
     try {
-      const value = await resolve(unit)
+      const value = yield* resolve(unit)
       context.set(unit[__meta].identity, value)
       return value
     } catch (error) {
@@ -39,7 +46,7 @@ export function createContainer(sync: boolean): Container<false> {
     }
   }
 
-  const resolve = async <T>(unit: Unit<T>): Promise<T> => {
+  const resolve = function* <T>(unit: Unit<T>): Generator<GeneratorValue<T>, T, T> {
     if (resolving.has(unit[__meta].identity))
       throw new CycleError(
         [...resolving, unit[__meta].identity].map((id) => id.toString())
@@ -52,41 +59,75 @@ export function createContainer(sync: boolean): Container<false> {
 
     stack.push()
 
-    for (const dep of dependencies) {
-      if (dep[__meta].key !== null && dep[__meta].key in values)
-        throw new DuplicateDependencyError(
-          unit[__meta].identity.toString(),
-          dep[__meta].key.toString()
-        )
+    try {
+      for (const dep of dependencies) {
+        if (dep[__meta].key !== null && dep[__meta].key in values)
+          throw new DuplicateDependencyError(
+            unit[__meta].identity.toString(),
+            dep[__meta].key.toString()
+          )
 
-      const value = await get(dep)
-      if (graph.has(dep[__meta].identity)) {
-        const bindings = graph.get(dep[__meta].identity) ?? new Set()
-        bindings.add(unit[__meta].identity)
-        graph.set(dep[__meta].identity, bindings)
-        if (!graph.has(unit[__meta].identity)) graph.set(unit[__meta].identity, new Set())
+        const value = yield* get(dep as Unit<T>)
+        if (graph.has(dep[__meta].identity)) {
+          const bindings = graph.get(dep[__meta].identity) ?? new Set()
+          bindings.add(unit[__meta].identity)
+          graph.set(dep[__meta].identity, bindings)
+          if (!graph.has(unit[__meta].identity))
+            graph.set(unit[__meta].identity, new Set())
+        }
+        if (dep[__meta].key !== null) values[dep[__meta].key] = value
       }
-      if (dep[__meta].key !== null) values[dep[__meta].key] = value
+
+      const value = yield { unit, values }
+
+      return value
+    } finally {
+      stack.run(context, graph)
+      resolving.delete(unit[__meta].identity)
     }
-
-    stack.run(context, graph)
-    resolving.delete(unit[__meta].identity)
-
-    const value = await unit.factory(values)
-
-    return value
   }
 
   return {
-    async get(unit) {
+    get(unit) {
+      const generator = get(unit)
       try {
-        return await get(unit)
+        if (sync) return executeSync(generator, generator.next())
+        return execute(generator, generator.next())
       } catch (error) {
-        stack.clear(context, graph)
-        resolving.clear()
-        throw error
+        if (sync) throw error
+        return Promise.reject(error)
       }
     },
+  }
+}
+
+async function execute<T, G extends Generator<GeneratorValue<T>, T, T>>(
+  generator: G,
+  result: IteratorResult<GeneratorValue<T>>
+): Promise<T> {
+  if (result.done) return result.value
+  try {
+    const { unit, values } = result.value
+    const value = unit.factory(values)
+
+    return execute(generator, generator.next(unit[__meta].sync ? value : await value))
+  } catch (error) {
+    return execute(generator, generator.throw(error))
+  }
+}
+
+function executeSync<T, G extends Generator<GeneratorValue<T>, T, T>>(
+  generator: G,
+  result: IteratorResult<GeneratorValue<T>>
+): T {
+  if (result.done) return result.value
+  try {
+    return executeSync(
+      generator,
+      generator.next(result.value.unit.factory(result.value.values))
+    )
+  } catch (error) {
+    return executeSync(generator, generator.throw(error))
   }
 }
 

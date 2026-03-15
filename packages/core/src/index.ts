@@ -26,6 +26,29 @@ export function createTask<T, D extends readonly Unit[] = []>(
   )
 }
 
+export function createSyncTask<T>(
+  factory: Factory<T, true, []>,
+  tag?: string
+): Unit<T, true, null, []>
+export function createSyncTask<T, D extends readonly Unit[] = []>(
+  payload: CoreUnit<T, true, D>,
+  tag?: string
+): Unit<T, true, null, D>
+export function createSyncTask<T, D extends readonly Unit[] = []>(
+  payload: CoreUnit<T, true, D> | Factory<T, true, D>,
+  tag?: string
+): Unit<T, true, null, D> {
+  return createUnit(
+    Symbol(tag),
+    true,
+    null,
+    'task',
+    typeof payload === 'function'
+      ? { using: [] as unknown as D, factory: payload }
+      : payload
+  )
+}
+
 export function createToken<T>(tag?: string): Token<T, null> {
   return createTokenInternl(Symbol(tag), null)
 }
@@ -34,8 +57,16 @@ export function createContainer(): Container<false> {
   return createContainerInternal(false)
 }
 
+export function createSyncContainer(): Container<true> {
+  return createContainerInternal(true)
+}
+
 export function resolve<T>(unit: Unit<T>): Promise<T> {
   return createContainer().get(unit)
+}
+
+export function resolveSync<T>(unit: Unit<T>): T {
+  return createSyncContainer().get(unit)
 }
 
 export type { UnitKey } from './internal/meta.js'

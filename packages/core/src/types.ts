@@ -26,7 +26,9 @@ export interface Token<T, K extends UnitKey | null> extends Unit<T, true, K, []>
 }
 
 export interface Container<S extends boolean> {
-  get<T>(unit: Unit<T>): S extends true ? T : Promise<T>
+  get<T, USync extends boolean>(
+    unit: Unit<T, USync>
+  ): S extends true ? (USync extends true ? T : Promise<T>) : Promise<T>
 }
 
 export type MapUnits<D extends readonly Unit[], S extends boolean> = {

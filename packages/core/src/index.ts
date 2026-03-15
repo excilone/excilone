@@ -65,7 +65,9 @@ export function resolve<T>(unit: Unit<T>): Promise<T> {
   return createContainer().get(unit)
 }
 
-export function resolveSync<T>(unit: Unit<T>): T {
+export function resolveSync<T, S extends boolean>(
+  unit: Unit<T, S>
+): S extends true ? T : Promise<T> {
   return createSyncContainer().get(unit)
 }
 

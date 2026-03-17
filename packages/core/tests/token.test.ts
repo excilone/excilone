@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { createSyncTask, createToken, resolveSync } from '../src/index.js'
+import {
+  createSyncTask,
+  createTask,
+  createToken,
+  resolve,
+  resolveSync,
+} from '../src/index.js'
 
 describe('Token and Binding creation', () => {
   it('should create a token and binding correctly', () => {
@@ -249,5 +255,23 @@ describe('Token and Binding creation', () => {
       resultA: 20,
       resultB: 25,
     })
+  })
+})
+
+describe('Async tokens in async mode', () => {
+  it('should keep async tokens as promises in sync mode', () => {
+    const AsyncToken = createToken<Promise<number>>().as('token')
+
+    const DependentTask = createTask({
+      using: [AsyncToken],
+      factory: (deps) => deps.token.then((value) => value * 3),
+    }).as('dependent')
+
+    const MainTask = createTask({
+      using: [AsyncToken.bind(Promise.resolve(7)), DependentTask],
+      factory: (deps) => deps.dependent + 1,
+    })
+
+    return expect(resolve(MainTask)).resolves.toBe(22)
   })
 })

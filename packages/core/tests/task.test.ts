@@ -111,4 +111,32 @@ describe('Asynchronous factories', () => {
 
     return expect(resolve(DependentTask)).resolves.toBe(21)
   })
+
+  it('should keep sync tasks that returns a promise as a promise in async container', () => {
+    const SyncTask = createSyncTask({
+      using: [],
+      factory: () => Promise.resolve(10),
+    }).as('taskA')
+
+    const AsyncTask = createTask({
+      using: [SyncTask],
+      factory: (deps) => deps.taskA.then((value) => value * 2),
+    })
+
+    return expect(resolve(AsyncTask)).resolves.toBe(20)
+  })
+
+  it('should allow using async tasks in sync tasks but keep them as promises', () => {
+    const AsyncTask = createTask(() => 5).as('asyncValue')
+
+    const SyncTask = createSyncTask({
+      using: [AsyncTask],
+      factory: (deps) => deps.asyncValue.then((value) => value * 4),
+    })
+
+    const result = resolveSync(SyncTask)
+
+    expect(result).toBeInstanceOf(Promise)
+    return expect(result).resolves.toBe(20)
+  })
 })

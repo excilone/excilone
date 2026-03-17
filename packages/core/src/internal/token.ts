@@ -8,7 +8,7 @@ function createBinding<T, const K extends UnitKey | null>(
   key: K,
   value: T
 ): Unit<T, true, K, []> {
-  return createUnit(id, true, key, 'binding', {
+  return createUnit(id, true, key, true, {
     using: [],
     factory: () => value,
   })
@@ -19,7 +19,7 @@ export function createToken<T, const N extends UnitKey | null>(
   name: N
 ): Token<T, N> {
   return {
-    ...createUnit(id, true, name, 'token', {
+    ...createUnit(id, true, name, false, {
       using: [],
       factory: () => {
         throw new MissingBindingError(String(id))

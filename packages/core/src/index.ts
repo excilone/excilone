@@ -19,7 +19,7 @@ export function createTask<T, D extends readonly Unit[] = []>(
     Symbol(tag),
     false,
     null,
-    'task',
+    false,
     typeof payload === 'function'
       ? { using: [] as unknown as D, factory: payload }
       : payload
@@ -42,7 +42,7 @@ export function createSyncTask<T, D extends readonly Unit[] = []>(
     Symbol(tag),
     true,
     null,
-    'task',
+    false,
     typeof payload === 'function'
       ? { using: [] as unknown as D, factory: payload }
       : payload

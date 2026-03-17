@@ -27,7 +27,7 @@ export function createContainer(sync: boolean): Container<boolean> {
     })
 
   const get = function* <T>(unit: Unit<T>): Generator<GeneratorValue<T>, T, T> {
-    if (unit[__meta].type === 'binding') {
+    if (unit[__meta].bind) {
       const value = unit.factory({})
       stack.bind(unit, context, graph)
       context.set(unit[__meta].identity, value)

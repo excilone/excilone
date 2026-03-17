@@ -1,27 +1,33 @@
 import { describe, expect, it } from 'vitest'
-import { createTask, createToken, resolve } from '../src/index.js'
+import {
+  createSyncTask,
+  createTask,
+  createToken,
+  resolve,
+  resolveSync,
+} from '../src/index.js'
 
 describe('Token and Binding creation', () => {
-  it('should create a token and binding correctly', async () => {
+  it('should create a token and binding correctly', () => {
     const NameToken = createToken<string>().as('name')
 
-    const GreetingTask = createTask({
+    const GreetingTask = createSyncTask({
       using: [NameToken.bind('World')],
       factory: (deps) => `Hello, ${deps.name}`,
     })
 
-    await expect(resolve(GreetingTask)).resolves.toBe('Hello, World')
+    expect(resolveSync(GreetingTask)).toBe('Hello, World')
   })
 
-  it('should use the nearest binding', async () => {
+  it('should use the nearest binding', () => {
     const AgeToken = createToken<number>().as('age')
 
-    const PersonTask = createTask({
+    const PersonTask = createSyncTask({
       using: [AgeToken],
       factory: (deps) => ({ age: deps.age }),
     })
 
-    const MainTask = createTask({
+    const MainTask = createSyncTask({
       using: [
         AgeToken.bind(30),
         PersonTask.as('person'),
@@ -34,65 +40,65 @@ describe('Token and Binding creation', () => {
       }),
     })
 
-    await expect(resolve(MainTask)).resolves.toEqual({
+    expect(resolveSync(MainTask)).toEqual({
       personAge: 30,
       childPersonAge: 12,
     })
   })
 
-  it('should use the nearest nested binding', async () => {
+  it('should use the nearest nested binding', () => {
     const ColorToken = createToken<string>().as('color')
 
-    const ForegroundTask = createTask({
+    const ForegroundTask = createSyncTask({
       using: [ColorToken],
       factory: (deps) => `Foreground color is: ${deps.color}`,
     }).as('fg')
 
-    const OuterTask = createTask({
+    const OuterTask = createSyncTask({
       using: [ColorToken.bind('blue'), ForegroundTask],
       factory: (deps) => `Outer task says: ${deps.fg}`,
     }).as('outer')
 
-    const MainTask = createTask({
+    const MainTask = createSyncTask({
       using: [ColorToken.bind('red'), ForegroundTask, OuterTask],
       factory: (deps) => `Main task says: ${deps.fg}. ${deps.outer}.`,
     })
 
-    await expect(resolve(MainTask)).resolves.toBe(
+    expect(resolveSync(MainTask)).toBe(
       'Main task says: Foreground color is: red. Outer task says: Foreground color is: blue.'
     )
   })
 
-  it('should not override bindings in sibling units', async () => {
+  it('should not override bindings in sibling units', () => {
     const FlagToken = createToken<boolean>().as('flag')
 
-    const TaskA = createTask({
+    const TaskA = createSyncTask({
       using: [FlagToken.bind(true)],
       factory: (deps) => `Flag is ${deps.flag}`,
     }).as('taskA')
 
-    const TaskB = createTask({
+    const TaskB = createSyncTask({
       using: [FlagToken.bind(false)],
       factory: (deps) => `Flag is ${deps.flag}`,
     }).as('taskB')
 
-    const MainTask = createTask({
+    const MainTask = createSyncTask({
       using: [TaskA, TaskB],
       factory: (deps) => `${deps.taskA}; ${deps.taskB}`,
     })
 
-    await expect(resolve(MainTask)).resolves.toBe('Flag is true; Flag is false')
+    expect(resolveSync(MainTask)).toBe('Flag is true; Flag is false')
   })
 
-  it('should not override units when declaring new bindings', async () => {
+  it('should not override units when declaring new bindings', () => {
     const SizeToken = createToken<number>().as('size')
 
-    const SizeTask = createTask({
+    const SizeTask = createSyncTask({
       using: [SizeToken],
       factory: (deps) => deps.size + 10,
     }).as('sizeTask')
 
-    const MainTask = createTask({
+    const MainTask = createSyncTask({
       using: [SizeToken.bind(5), SizeTask, SizeToken.bind(20).as('sizeToken')],
       factory: (deps) => ({
         sizeUnitValue: deps.sizeTask,
@@ -100,44 +106,44 @@ describe('Token and Binding creation', () => {
       }),
     })
 
-    await expect(resolve(MainTask)).resolves.toEqual({
+    expect(resolveSync(MainTask)).toEqual({
       sizeUnitValue: 15,
       sizeTokenValue: 20,
     })
   })
 
-  it('should use the correct binding in nested tasks', async () => {
+  it('should use the correct binding in nested tasks', () => {
     const ValueToken = createToken<number>().as('value')
 
-    const ValueTask = createTask({
+    const ValueTask = createSyncTask({
       using: [ValueToken],
       factory: (deps) => deps.value * 2,
     }).as('task')
 
-    const FirstTask = createTask({
+    const FirstTask = createSyncTask({
       using: [ValueToken.bind(3), ValueTask],
       factory: (deps) => deps.task + 1,
     }).as('first')
 
-    const SecondTask = createTask({
+    const SecondTask = createSyncTask({
       using: [ValueToken.bind(5), ValueTask],
       factory: (deps) => deps.task + 1,
     }).as('second')
 
-    const MainTask = createTask({
+    const MainTask = createSyncTask({
       using: [FirstTask, SecondTask],
       factory: (deps) => `${deps.first}, ${deps.second}`,
     })
 
-    await expect(resolve(MainTask)).resolves.toBe('7, 11')
+    expect(resolveSync(MainTask)).toBe('7, 11')
   })
 
-  it('should execute factory functions only once per binding', async () => {
+  it('should execute factory functions only once per binding', () => {
     let callCount = 0
 
     const NumberToken = createToken<number>().as('number')
 
-    const NumberTask = createTask({
+    const NumberTask = createSyncTask({
       using: [NumberToken],
       factory: (deps) => {
         callCount++
@@ -145,41 +151,41 @@ describe('Token and Binding creation', () => {
       },
     }).as('numberTask')
 
-    const InnerTask = createTask({
+    const InnerTask = createSyncTask({
       using: [NumberToken.bind(7), NumberTask],
       factory: (deps) => deps.numberTask + 1,
     }).as('inner')
 
-    const AnotherInnerTask = createTask({
+    const AnotherInnerTask = createSyncTask({
       using: [NumberTask],
       factory: (deps) => deps.numberTask + 5,
     }).as('anotherInner')
 
-    const MainTask = createTask({
+    const MainTask = createSyncTask({
       using: [NumberToken.bind(5), InnerTask, AnotherInnerTask, NumberTask],
       factory: (deps) => deps.inner + deps.anotherInner + deps.numberTask,
     })
 
-    await expect(resolve(MainTask)).resolves.toBe(
+    expect(resolveSync(MainTask)).toBe(
       [7 * 2 + 1, 5 * 2 + 5, 5 * 2].reduce((a, b) => a + b, 0)
     )
     expect(callCount).toBe(2)
   })
 
-  it('should detect dynamic task dependencies correctly', async () => {
+  it('should detect dynamic task dependencies correctly', () => {
     const NumberToken = createToken<number>()
 
-    const DynamicTask = createTask({
+    const DynamicTask = createSyncTask({
       using: [NumberToken.as('number')],
       factory: (deps) => deps.number * 3,
     })
 
-    const InnerTask = createTask({
+    const InnerTask = createSyncTask({
       using: [DynamicTask.as('dynamic')],
       factory: (deps) => deps.dynamic + 2,
     })
 
-    const MainTask = createTask({
+    const MainTask = createSyncTask({
       using: [
         NumberToken.bind(4),
         InnerTask.as('first'),
@@ -189,19 +195,19 @@ describe('Token and Binding creation', () => {
       factory: (deps) => deps.first + deps.second,
     })
 
-    await expect(resolve(MainTask)).resolves.toBe(4 * 3 + 2 + (10 * 3 + 2))
+    expect(resolveSync(MainTask)).toBe(4 * 3 + 2 + (10 * 3 + 2))
   })
 
-  it('should execute factory functions only once per binding with dynamic tasks', async () => {
+  it('should execute factory functions only once per binding with dynamic tasks', () => {
     const NumberToken = createToken<number>()
     let calls = 0
 
-    const DynamicTask = createTask({
+    const DynamicTask = createSyncTask({
       using: [NumberToken.as('number')],
       factory: (deps) => deps.number * 3,
     })
 
-    const InnerTask = createTask({
+    const InnerTask = createSyncTask({
       using: [DynamicTask.as('dynamic')],
       factory: (deps) => {
         calls++
@@ -209,7 +215,7 @@ describe('Token and Binding creation', () => {
       },
     })
 
-    const MainTask = createTask({
+    const MainTask = createSyncTask({
       using: [
         NumberToken.bind(4),
         InnerTask.as('first'),
@@ -220,24 +226,24 @@ describe('Token and Binding creation', () => {
       factory: (deps) => deps.first + deps.second + deps.third,
     })
 
-    await expect(resolve(MainTask)).resolves.toBe(4 * 3 + 2 + (10 * 3 + 2) * 2)
+    expect(resolveSync(MainTask)).toBe(4 * 3 + 2 + (10 * 3 + 2) * 2)
     expect(calls).toBe(2)
   })
 
-  it('should allow reusing tokens in different task', async () => {
+  it('should allow reusing tokens in different task', () => {
     const ValueToken = createToken<number>().as('value')
 
-    const TaskA = createTask({
+    const TaskA = createSyncTask({
       using: [ValueToken.bind(10)],
       factory: (deps) => deps.value * 2,
     }).as('taskA')
 
-    const TaskB = createTask({
+    const TaskB = createSyncTask({
       using: [ValueToken.bind(20)],
       factory: (deps) => deps.value + 5,
     }).as('taskB')
 
-    const MainTask = createTask({
+    const MainTask = createSyncTask({
       using: [TaskA, TaskB],
       factory: (deps) => ({
         resultA: deps.taskA,
@@ -245,9 +251,27 @@ describe('Token and Binding creation', () => {
       }),
     })
 
-    await expect(resolve(MainTask)).resolves.toEqual({
+    expect(resolveSync(MainTask)).toEqual({
       resultA: 20,
       resultB: 25,
     })
+  })
+})
+
+describe('Async tokens in async mode', () => {
+  it('should keep async tokens as promises in sync mode', () => {
+    const AsyncToken = createToken<Promise<number>>().as('token')
+
+    const DependentTask = createTask({
+      using: [AsyncToken],
+      factory: (deps) => deps.token.then((value) => value * 3),
+    }).as('dependent')
+
+    const MainTask = createTask({
+      using: [AsyncToken.bind(Promise.resolve(7)), DependentTask],
+      factory: (deps) => deps.dependent + 1,
+    })
+
+    return expect(resolve(MainTask)).resolves.toBe(22)
   })
 })

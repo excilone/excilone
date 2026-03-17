@@ -118,16 +118,17 @@ async function execute<T, G extends Generator<GeneratorValue<T>, T, T>>(
   }
 }
 
-function executeSync<T, G extends Generator<GeneratorValue<T>, T, T>>(
+function executeSync<T, G extends Generator<GeneratorValue<T>, T, T | Promise<T>>>(
   generator: G,
   result: IteratorResult<GeneratorValue<T>>
 ): T {
   if (result.done) return result.value
   try {
-    return executeSync(
-      generator,
-      generator.next(result.value.unit.factory(result.value.values))
-    )
+    const { unit, values } = result.value
+    const value = unit[__meta].sync
+      ? unit.factory(values)
+      : Promise.resolve(unit.factory(values))
+    return executeSync(generator, generator.next(value))
   } catch (error) {
     return executeSync(generator, generator.throw(error))
   }

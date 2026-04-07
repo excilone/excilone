@@ -274,4 +274,44 @@ describe('Async tokens in async mode', () => {
 
     return expect(resolve(MainTask)).resolves.toBe(22)
   })
+
+  it('should execute factory functions only once per binding, even with an intermediate async task', async () => {
+    const NumberToken = createToken<number>()
+    let calls = 0
+
+    const DynamicTask = createTask({
+      using: [NumberToken.as('number')],
+      factory: (deps) => Promise.resolve(deps.number * 3),
+    })
+
+    const InnerTask = createTask({
+      using: [DynamicTask.as('dynamic')],
+      factory: (deps) => {
+        calls++
+        return deps.dynamic + 2
+      },
+    })
+
+    const OtherTask = createTask({
+      using: [NumberToken.bind(3), InnerTask.as('inner')],
+      factory: (deps) => deps.inner + 5,
+    })
+
+    const MainTask = createTask({
+      using: [
+        NumberToken.bind(4),
+        InnerTask.as('first'),
+        NumberToken.bind(10),
+        OtherTask.as('other'),
+        InnerTask.as('second'),
+        InnerTask.as('third'),
+      ],
+      factory: (deps) => deps.first + deps.other + deps.second + deps.third,
+    })
+
+    await expect(resolve(MainTask)).resolves.toBe(
+      4 * 3 + 2 + (3 * 3 + 2 + 5) + (10 * 3 + 2) * 2
+    )
+    return expect(calls).toBe(3)
+  })
 })

@@ -1,5 +1,19 @@
 # @excilone/core
 
+## 0.4.0
+
+### Minor Changes
+
+- 74ff73b: Rename `resolveUnit` to `resolve`
+- 326cc10: Add `createSyncTask`, `createSyncContainer` and `resolveSync`
+- 326cc10: Remove the type `InferReturnType`
+- 74ff73b: Add containers with the `createContainer` function
+- 326cc10: Add a sync (S) generic to available types
+
+### Patch Changes
+
+- 74ff73b: Fix the revalidation of `Task` when it indirectly depends on another dynamic `Task`.
+
 ## 0.3.0
 
 ### Minor Changes
